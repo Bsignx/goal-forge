@@ -34,7 +34,7 @@ export async function POST(
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
-  // Check if completion exists
+  // Use upsert pattern to handle race conditions
   const existingCompletion = await prisma.completion.findUnique({
     where: {
       habitId_date: {
@@ -45,18 +45,28 @@ export async function POST(
   });
 
   if (existingCompletion) {
-    // Remove completion (toggle off)
-    await prisma.completion.delete({
-      where: { id: existingCompletion.id },
-    });
-    return NextResponse.json({ completed: false });
-  } else {
-    // Add completion (toggle on)
-    await prisma.completion.create({
-      data: {
+    // Remove completion (toggle off) - use deleteMany to avoid "not found" errors
+    await prisma.completion.deleteMany({
+      where: {
         habitId,
         date: today,
       },
+    });
+    return NextResponse.json({ completed: false });
+  } else {
+    // Add completion (toggle on) - use upsert to handle race conditions
+    await prisma.completion.upsert({
+      where: {
+        habitId_date: {
+          habitId,
+          date: today,
+        },
+      },
+      create: {
+        habitId,
+        date: today,
+      },
+      update: {},
     });
     return NextResponse.json({ completed: true });
   }

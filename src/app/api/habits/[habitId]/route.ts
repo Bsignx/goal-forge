@@ -31,13 +31,27 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const { name, emoji } = body;
+  const { name, emoji, identityId } = body;
+
+  // Verify identity belongs to user if provided
+  if (identityId) {
+    const identity = await prisma.identity.findFirst({
+      where: { id: identityId, userId: session.user.id },
+    });
+    if (!identity) {
+      return NextResponse.json(
+        { error: "Identity not found" },
+        { status: 404 },
+      );
+    }
+  }
 
   const updatedHabit = await prisma.habit.update({
     where: { id: habitId },
     data: {
       ...(name && { name }),
       ...(emoji && { emoji }),
+      ...(identityId !== undefined && { identityId: identityId || null }),
     },
   });
 

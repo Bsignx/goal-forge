@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
           date: today,
         },
       },
+      identity: true,
     },
     orderBy: { order: "asc" },
   });
@@ -40,6 +41,8 @@ export async function GET(request: NextRequest) {
     emoji: habit.emoji,
     order: habit.order,
     completed: habit.completions.length > 0,
+    identityId: habit.identityId,
+    identity: habit.identity,
   }));
 
   return NextResponse.json(habitsWithStatus);

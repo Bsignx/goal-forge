@@ -35,10 +35,23 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { name, emoji } = body;
+  const { name, emoji, identityId } = body;
 
   if (!name) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  }
+
+  // Verify identity belongs to user if provided
+  if (identityId) {
+    const identity = await prisma.identity.findFirst({
+      where: { id: identityId, userId: session.user.id },
+    });
+    if (!identity) {
+      return NextResponse.json(
+        { error: "Identity not found" },
+        { status: 404 },
+      );
+    }
   }
 
   // Get the max order for this user
@@ -53,6 +66,7 @@ export async function POST(request: NextRequest) {
       emoji: emoji || "✅",
       order: (maxOrder._max.order ?? -1) + 1,
       userId: session.user.id,
+      identityId: identityId || null,
     },
   });
 

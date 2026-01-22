@@ -77,8 +77,11 @@ model Habit {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   completions Completion[]
+  identityId  String?
+  identity    Identity?    @relation(fields: [identityId], references: [id])
 
   @@index([userId])
+  @@index([identityId])
 }
 
 model Completion {
@@ -91,4 +94,18 @@ model Completion {
   @@unique([habitId, date])
   @@index([habitId])
   @@index([date])
+}
+
+// Active Identity Feature
+model Identity {
+  id        String   @id @default(cuid())
+  name      String
+  emoji     String   @default("🎯")
+  isActive  Boolean  @default(true)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  habits    Habit[]
+
+  @@index([userId])
 }
