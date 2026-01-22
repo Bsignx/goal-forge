@@ -226,6 +226,37 @@ DIRECT_URL="postgresql://..." # For Supabase pooling
 - Use server components by default, add `"use client"` only when needed
 - Keep components in `src/app` or create `src/components` for shared components
 - Use Tailwind CSS for styling
+- **Mobile-First Design**: Always design for mobile first, then scale up
+
+### Mobile-First Guidelines
+
+All screens must be designed mobile-first. This means:
+
+1. **Start with mobile styles** (no breakpoint prefix)
+2. **Add responsive enhancements** using breakpoint prefixes (`sm:`, `md:`, `lg:`, `xl:`)
+3. **Touch-friendly targets**: Buttons/interactive elements minimum 44x44px
+4. **Readable text**: Base font size 16px minimum for body text
+5. **Adequate spacing**: Use generous padding on mobile (`p-4` minimum)
+
+```tsx
+// ✅ Mobile-first approach
+<div className="px-4 py-6 md:px-8 md:py-8 lg:px-12">
+  <h1 className="text-2xl md:text-3xl lg:text-4xl">Title</h1>
+  <button className="w-full py-3 md:w-auto md:px-6">Click me</button>
+</div>
+
+// ❌ Desktop-first (avoid)
+<div className="px-12 py-8 sm:px-4 sm:py-6">
+```
+
+**Breakpoint Reference:**
+
+- Default (no prefix): < 640px (mobile)
+- `sm:`: ≥ 640px (large phones, small tablets)
+- `md:`: ≥ 768px (tablets)
+- `lg:`: ≥ 1024px (laptops)
+- `xl:`: ≥ 1280px (desktops)
+- `2xl:`: ≥ 1536px (large screens)
 
 ## Clean Code Principles
 
