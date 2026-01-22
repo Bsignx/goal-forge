@@ -9,6 +9,11 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  trustedOrigins: [
+    process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    "https://goal-forge-five.vercel.app",
+  ],
+  baseURL: process.env.BETTER_AUTH_URL,
 });
 
 export type Session = typeof auth.$Infer.Session;
