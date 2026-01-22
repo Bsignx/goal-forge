@@ -108,6 +108,13 @@ enum LoadMode {
   MINIMAL   // 🟢 Bad day
 }
 
+// Life Radar status levels
+enum RadarStatus {
+  RED     // 🔴 Needs attention
+  YELLOW  // 🟡 Warning
+  GREEN   // 🟢 Good
+}
+
 // Active Identity Feature
 model Identity {
   id        String   @id @default(cuid())
@@ -120,4 +127,23 @@ model Identity {
   habits    Habit[]
 
   @@index([userId])
+}
+
+// Life Radar - Weekly life balance check
+model LifeRadar {
+  id          String      @id @default(cuid())
+  weekStart   DateTime    @db.Date  // Monday of the week
+  userId      String
+  body        RadarStatus @default(GREEN)
+  mind        RadarStatus @default(GREEN)
+  profession  RadarStatus @default(GREEN)
+  projects    RadarStatus @default(GREEN)
+  environment RadarStatus @default(GREEN)
+  notes       String?     // Optional reflection
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+  @@index([weekStart])
 }

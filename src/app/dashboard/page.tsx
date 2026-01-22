@@ -42,7 +42,9 @@ import {
   Battery,
   BatteryLow,
   BatteryWarning,
+  Radio,
 } from "lucide-react";
+import Link from "next/link";
 
 // Types
 type LoadMode = "FULL" | "RECOVERY" | "MINIMAL";
@@ -365,7 +367,13 @@ export default function DashboardPage() {
       <header className="border-b">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">🎯 Goal Forge</h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Link href="/radar">
+              <Button variant="outline" size="sm">
+                <Radio className="w-4 h-4 mr-1" />
+                Radar
+              </Button>
+            </Link>
             <span className="text-sm text-muted-foreground hidden sm:block">
               {session.user.email}
             </span>
