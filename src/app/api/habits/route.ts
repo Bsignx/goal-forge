@@ -35,7 +35,14 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { name, emoji, identityId } = body;
+  const {
+    name,
+    emoji,
+    identityId,
+    fullDescription,
+    recoveryDescription,
+    minimalDescription,
+  } = body;
 
   if (!name) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -67,6 +74,9 @@ export async function POST(request: NextRequest) {
       order: (maxOrder._max.order ?? -1) + 1,
       userId: session.user.id,
       identityId: identityId || null,
+      fullDescription: fullDescription || null,
+      recoveryDescription: recoveryDescription || null,
+      minimalDescription: minimalDescription || null,
     },
   });
 

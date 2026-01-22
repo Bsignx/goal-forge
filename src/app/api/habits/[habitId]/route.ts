@@ -31,7 +31,14 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const { name, emoji, identityId } = body;
+  const {
+    name,
+    emoji,
+    identityId,
+    fullDescription,
+    recoveryDescription,
+    minimalDescription,
+  } = body;
 
   // Verify identity belongs to user if provided
   if (identityId) {
@@ -52,6 +59,15 @@ export async function PATCH(
       ...(name && { name }),
       ...(emoji && { emoji }),
       ...(identityId !== undefined && { identityId: identityId || null }),
+      ...(fullDescription !== undefined && {
+        fullDescription: fullDescription || null,
+      }),
+      ...(recoveryDescription !== undefined && {
+        recoveryDescription: recoveryDescription || null,
+      }),
+      ...(minimalDescription !== undefined && {
+        minimalDescription: minimalDescription || null,
+      }),
     },
   });
 

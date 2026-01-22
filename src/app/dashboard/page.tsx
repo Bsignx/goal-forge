@@ -33,9 +33,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Check, Pencil, Trash2, Plus, Sparkles } from "lucide-react";
+import {
+  Check,
+  Pencil,
+  Trash2,
+  Plus,
+  Sparkles,
+  Battery,
+  BatteryLow,
+  BatteryWarning,
+} from "lucide-react";
 
 // Types
+type LoadMode = "FULL" | "RECOVERY" | "MINIMAL";
+
 type Identity = {
   id: string;
   name: string;
@@ -48,8 +59,12 @@ type Habit = {
   emoji: string;
   order: number;
   completed: boolean;
+  completionMode: LoadMode | null;
   identityId: string | null;
   identity: Identity | null;
+  fullDescription: string | null;
+  recoveryDescription: string | null;
+  minimalDescription: string | null;
 };
 
 type EditingHabit = {
@@ -57,6 +72,9 @@ type EditingHabit = {
   name: string;
   emoji: string;
   identityId: string | null;
+  fullDescription: string;
+  recoveryDescription: string;
+  minimalDescription: string;
 } | null;
 
 type EditingIdentity = {
@@ -73,6 +91,7 @@ export default function DashboardPage() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dayMode, setDayMode] = useState<LoadMode>("FULL");
 
   // Dialogs
   const [showAddHabit, setShowAddHabit] = useState(false);
@@ -88,6 +107,9 @@ export default function DashboardPage() {
   const [newHabitName, setNewHabitName] = useState("");
   const [newHabitEmoji, setNewHabitEmoji] = useState("✅");
   const [newHabitIdentityId, setNewHabitIdentityId] = useState<string>("");
+  const [newHabitFull, setNewHabitFull] = useState("");
+  const [newHabitRecovery, setNewHabitRecovery] = useState("");
+  const [newHabitMinimal, setNewHabitMinimal] = useState("");
   const [newIdentityName, setNewIdentityName] = useState("");
   const [newIdentityEmoji, setNewIdentityEmoji] = useState("🎯");
 
@@ -139,20 +161,37 @@ export default function DashboardPage() {
   };
 
   const toggleHabit = async (habitId: string) => {
+    const habit = habits.find((h) => h.id === habitId);
+    const wasCompleted = habit?.completed;
+
     setHabits((prev) =>
       prev.map((h) =>
-        h.id === habitId ? { ...h, completed: !h.completed } : h,
+        h.id === habitId
+          ? {
+              ...h,
+              completed: !h.completed,
+              completionMode: !h.completed ? dayMode : null,
+            }
+          : h,
       ),
     );
 
     try {
       const res = await fetch(`/api/habits/${habitId}/complete`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: dayMode }),
       });
       if (!res.ok) {
         setHabits((prev) =>
           prev.map((h) =>
-            h.id === habitId ? { ...h, completed: !h.completed } : h,
+            h.id === habitId
+              ? {
+                  ...h,
+                  completed: wasCompleted,
+                  completionMode: habit?.completionMode,
+                }
+              : h,
           ),
         );
       }
@@ -177,12 +216,18 @@ export default function DashboardPage() {
           name: newHabitName,
           emoji: newHabitEmoji,
           identityId: newHabitIdentityId || null,
+          fullDescription: newHabitFull || null,
+          recoveryDescription: newHabitRecovery || null,
+          minimalDescription: newHabitMinimal || null,
         }),
       });
       if (res.ok) {
         setNewHabitName("");
         setNewHabitEmoji("✅");
         setNewHabitIdentityId("");
+        setNewHabitFull("");
+        setNewHabitRecovery("");
+        setNewHabitMinimal("");
         setShowAddHabit(false);
         fetchHabits();
       }
@@ -227,6 +272,9 @@ export default function DashboardPage() {
           name: editingHabit.name,
           emoji: editingHabit.emoji,
           identityId: editingHabit.identityId,
+          fullDescription: editingHabit.fullDescription || null,
+          recoveryDescription: editingHabit.recoveryDescription || null,
+          minimalDescription: editingHabit.minimalDescription || null,
         }),
       });
       if (res.ok) {
@@ -342,6 +390,45 @@ export default function DashboardPage() {
           </p>
         </div>
 
+        {/* Load Mode Selector (Anti-Burnout) */}
+        <div className="mb-8">
+          <p className="text-sm text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
+            <Battery className="w-4 h-4" />
+            Energy Level
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant={dayMode === "FULL" ? "default" : "outline"}
+              className={`flex-1 ${dayMode === "FULL" ? "bg-green-600 hover:bg-green-700" : ""}`}
+              onClick={() => setDayMode("FULL")}
+            >
+              <Battery className="w-4 h-4 mr-2" />
+              Full
+            </Button>
+            <Button
+              variant={dayMode === "RECOVERY" ? "default" : "outline"}
+              className={`flex-1 ${dayMode === "RECOVERY" ? "bg-yellow-600 hover:bg-yellow-700" : ""}`}
+              onClick={() => setDayMode("RECOVERY")}
+            >
+              <BatteryWarning className="w-4 h-4 mr-2" />
+              Recovery
+            </Button>
+            <Button
+              variant={dayMode === "MINIMAL" ? "default" : "outline"}
+              className={`flex-1 ${dayMode === "MINIMAL" ? "bg-red-600 hover:bg-red-700" : ""}`}
+              onClick={() => setDayMode("MINIMAL")}
+            >
+              <BatteryLow className="w-4 h-4 mr-2" />
+              Minimal
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            {dayMode === "FULL" && "Normal day - Full energy 💪"}
+            {dayMode === "RECOVERY" && "Tired or sick - Take it easy 🌙"}
+            {dayMode === "MINIMAL" && "Bad day - Just show up 🌱"}
+          </p>
+        </div>
+
         {/* Progress */}
         {totalCount > 0 && (
           <div className="mb-8">
@@ -422,9 +509,16 @@ export default function DashboardPage() {
                     <HabitCard
                       key={habit.id}
                       habit={habit}
+                      dayMode={dayMode}
                       onToggle={toggleHabit}
                       onEdit={(h) =>
-                        setEditingHabit({ ...h, identityId: h.identityId })
+                        setEditingHabit({
+                          ...h,
+                          identityId: h.identityId,
+                          fullDescription: h.fullDescription || "",
+                          recoveryDescription: h.recoveryDescription || "",
+                          minimalDescription: h.minimalDescription || "",
+                        })
                       }
                       onDelete={(id) => setDeleteConfirm({ type: "habit", id })}
                     />
@@ -452,9 +546,16 @@ export default function DashboardPage() {
                     <HabitCard
                       key={habit.id}
                       habit={habit}
+                      dayMode={dayMode}
                       onToggle={toggleHabit}
                       onEdit={(h) =>
-                        setEditingHabit({ ...h, identityId: h.identityId })
+                        setEditingHabit({
+                          ...h,
+                          identityId: h.identityId,
+                          fullDescription: h.fullDescription || "",
+                          recoveryDescription: h.recoveryDescription || "",
+                          minimalDescription: h.minimalDescription || "",
+                        })
                       }
                       onDelete={(id) => setDeleteConfirm({ type: "habit", id })}
                     />
@@ -550,6 +651,48 @@ export default function DashboardPage() {
                 </Select>
               </div>
             )}
+
+            {/* Load System (Anti-Burnout) */}
+            <div className="space-y-3 border-t pt-4">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <Battery className="w-4 h-4" />
+                Load Levels (optional)
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="full" className="text-xs text-green-600">
+                  🔴 Full (normal day)
+                </Label>
+                <Input
+                  id="full"
+                  value={newHabitFull}
+                  onChange={(e) => setNewHabitFull(e.target.value)}
+                  placeholder="e.g., 45 min workout"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="recovery" className="text-xs text-yellow-600">
+                  🟡 Recovery (tired/sick)
+                </Label>
+                <Input
+                  id="recovery"
+                  value={newHabitRecovery}
+                  onChange={(e) => setNewHabitRecovery(e.target.value)}
+                  placeholder="e.g., 20 min light exercise"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="minimal" className="text-xs text-red-600">
+                  🟢 Minimal (bad day)
+                </Label>
+                <Input
+                  id="minimal"
+                  value={newHabitMinimal}
+                  onChange={(e) => setNewHabitMinimal(e.target.value)}
+                  placeholder="e.g., 5 push-ups"
+                />
+              </div>
+            </div>
+
             <div className="flex gap-2 justify-end">
               <Button
                 type="button"
@@ -632,6 +775,69 @@ export default function DashboardPage() {
                 </Select>
               </div>
             )}
+
+            {/* Load System (Anti-Burnout) */}
+            <div className="space-y-3 border-t pt-4">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <Battery className="w-4 h-4" />
+                Load Levels
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-full" className="text-xs text-green-600">
+                  🔴 Full (normal day)
+                </Label>
+                <Input
+                  id="edit-full"
+                  value={editingHabit?.fullDescription || ""}
+                  onChange={(e) =>
+                    setEditingHabit((prev) =>
+                      prev
+                        ? { ...prev, fullDescription: e.target.value }
+                        : null,
+                    )
+                  }
+                  placeholder="e.g., 45 min workout"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="edit-recovery"
+                  className="text-xs text-yellow-600"
+                >
+                  🟡 Recovery (tired/sick)
+                </Label>
+                <Input
+                  id="edit-recovery"
+                  value={editingHabit?.recoveryDescription || ""}
+                  onChange={(e) =>
+                    setEditingHabit((prev) =>
+                      prev
+                        ? { ...prev, recoveryDescription: e.target.value }
+                        : null,
+                    )
+                  }
+                  placeholder="e.g., 20 min light exercise"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-minimal" className="text-xs text-red-600">
+                  🟢 Minimal (bad day)
+                </Label>
+                <Input
+                  id="edit-minimal"
+                  value={editingHabit?.minimalDescription || ""}
+                  onChange={(e) =>
+                    setEditingHabit((prev) =>
+                      prev
+                        ? { ...prev, minimalDescription: e.target.value }
+                        : null,
+                    )
+                  }
+                  placeholder="e.g., 5 push-ups"
+                />
+              </div>
+            </div>
+
             <div className="flex gap-2 justify-end">
               <Button
                 type="button"
@@ -794,15 +1000,39 @@ export default function DashboardPage() {
 // HabitCard Component
 function HabitCard({
   habit,
+  dayMode,
   onToggle,
   onEdit,
   onDelete,
 }: {
   habit: Habit;
+  dayMode: LoadMode;
   onToggle: (id: string) => void;
   onEdit: (habit: Habit) => void;
   onDelete: (id: string) => void;
 }) {
+  // Get the description based on current mode
+  const getDescription = () => {
+    switch (dayMode) {
+      case "FULL":
+        return habit.fullDescription;
+      case "RECOVERY":
+        return habit.recoveryDescription;
+      case "MINIMAL":
+        return habit.minimalDescription;
+      default:
+        return null;
+    }
+  };
+
+  const description = getDescription();
+  const completedModeLabel =
+    habit.completionMode === "MINIMAL"
+      ? "🟢"
+      : habit.completionMode === "RECOVERY"
+        ? "🟡"
+        : "🔴";
+
   return (
     <Card
       className={`transition-all duration-200 ${
@@ -817,15 +1047,25 @@ function HabitCard({
           className="flex items-center gap-3 flex-1 text-left"
         >
           <span className="text-2xl">{habit.emoji}</span>
-          <span
-            className={`flex-1 font-medium ${
-              habit.completed
-                ? "text-green-700 dark:text-green-400 line-through"
-                : ""
-            }`}
-          >
-            {habit.name}
-          </span>
+          <div className="flex-1">
+            <span
+              className={`font-medium ${
+                habit.completed
+                  ? "text-green-700 dark:text-green-400 line-through"
+                  : ""
+              }`}
+            >
+              {habit.name}
+              {habit.completed && habit.completionMode && (
+                <span className="ml-2 text-sm">{completedModeLabel}</span>
+              )}
+            </span>
+            {description && (
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {description}
+              </p>
+            )}
+          </div>
           <div
             className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
               habit.completed

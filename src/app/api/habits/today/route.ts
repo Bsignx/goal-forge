@@ -34,15 +34,19 @@ export async function GET(request: NextRequest) {
     orderBy: { order: "asc" },
   });
 
-  // Transform to include completed flag
+  // Transform to include completed flag and load info
   const habitsWithStatus = habits.map((habit) => ({
     id: habit.id,
     name: habit.name,
     emoji: habit.emoji,
     order: habit.order,
     completed: habit.completions.length > 0,
+    completionMode: habit.completions[0]?.mode || null,
     identityId: habit.identityId,
     identity: habit.identity,
+    fullDescription: habit.fullDescription,
+    recoveryDescription: habit.recoveryDescription,
+    minimalDescription: habit.minimalDescription,
   }));
 
   return NextResponse.json(habitsWithStatus);

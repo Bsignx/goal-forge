@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { LoadMode } from "@/generated/prisma";
 
 // Toggle completion for a habit on today's date
 export async function POST(
@@ -17,6 +18,17 @@ export async function POST(
   }
 
   const { habitId } = await params;
+
+  // Get mode from request body (optional)
+  let mode: LoadMode = "FULL";
+  try {
+    const body = await request.json();
+    if (body.mode && ["FULL", "RECOVERY", "MINIMAL"].includes(body.mode)) {
+      mode = body.mode as LoadMode;
+    }
+  } catch {
+    // No body or invalid JSON, use default mode
+  }
 
   // Verify the habit belongs to the user
   const habit = await prisma.habit.findFirst({
@@ -52,7 +64,7 @@ export async function POST(
         date: today,
       },
     });
-    return NextResponse.json({ completed: false });
+    return NextResponse.json({ completed: false, mode: null });
   } else {
     // Add completion (toggle on) - use upsert to handle race conditions
     await prisma.completion.upsert({
@@ -65,9 +77,10 @@ export async function POST(
       create: {
         habitId,
         date: today,
+        mode,
       },
-      update: {},
+      update: { mode },
     });
-    return NextResponse.json({ completed: true });
+    return NextResponse.json({ completed: true, mode });
   }
 }
