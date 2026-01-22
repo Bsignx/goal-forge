@@ -164,7 +164,10 @@ export default function DashboardPage() {
 
   const toggleHabit = async (habitId: string) => {
     const habit = habits.find((h) => h.id === habitId);
-    const wasCompleted = habit?.completed;
+    if (!habit) return;
+
+    const wasCompleted = habit.completed;
+    const previousMode = habit.completionMode;
 
     setHabits((prev) =>
       prev.map((h) =>
@@ -191,7 +194,7 @@ export default function DashboardPage() {
               ? {
                   ...h,
                   completed: wasCompleted,
-                  completionMode: habit?.completionMode,
+                  completionMode: previousMode,
                 }
               : h,
           ),
