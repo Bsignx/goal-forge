@@ -147,3 +147,18 @@ model LifeRadar {
   @@index([userId])
   @@index([weekStart])
 }
+
+// Stoic Writing - Daily guided reflection
+model StoicEntry {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  question  String   // The daily rotating question
+  answer    String   @db.VarChar(300) // Max 300 characters
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}

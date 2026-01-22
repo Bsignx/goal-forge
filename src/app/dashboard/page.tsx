@@ -33,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Check,
   Pencil,
@@ -43,6 +44,7 @@ import {
   BatteryLow,
   BatteryWarning,
   Radio,
+  ScrollText,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -105,6 +107,15 @@ export default function DashboardPage() {
     id: string;
   } | null>(null);
 
+  // Stoic Writing state
+  const [stoicQuestion, setStoicQuestion] = useState("");
+  const [stoicAnswer, setStoicAnswer] = useState("");
+  const [stoicEntry, setStoicEntry] = useState<{
+    id: string;
+    answer: string;
+  } | null>(null);
+  const [savingStoic, setSavingStoic] = useState(false);
+
   // Form state
   const [newHabitName, setNewHabitName] = useState("");
   const [newHabitEmoji, setNewHabitEmoji] = useState("✅");
@@ -142,6 +153,22 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchStoicEntry = useCallback(async () => {
+    try {
+      const res = await fetch("/api/stoic");
+      if (res.ok) {
+        const data = await res.json();
+        setStoicQuestion(data.question);
+        if (data.entry) {
+          setStoicEntry(data.entry);
+          setStoicAnswer(data.entry.answer);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch stoic entry:", error);
+    }
+  }, []);
+
   // Effects
   useEffect(() => {
     if (!isPending && !session) {
@@ -153,13 +180,35 @@ export default function DashboardPage() {
     if (session) {
       fetchHabits();
       fetchIdentities();
+      fetchStoicEntry();
     }
-  }, [session, fetchHabits, fetchIdentities]);
+  }, [session, fetchHabits, fetchIdentities, fetchStoicEntry]);
 
   // Handlers
   const handleSignOut = async () => {
     await signOut();
     router.push("/");
+  };
+
+  const saveStoicEntry = async () => {
+    if (!stoicAnswer.trim() || stoicAnswer.length > 300) return;
+
+    setSavingStoic(true);
+    try {
+      const res = await fetch("/api/stoic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answer: stoicAnswer }),
+      });
+      if (res.ok) {
+        const entry = await res.json();
+        setStoicEntry(entry);
+      }
+    } catch (error) {
+      console.error("Failed to save stoic entry:", error);
+    } finally {
+      setSavingStoic(false);
+    }
   };
 
   const toggleHabit = async (habitId: string) => {
@@ -438,6 +487,61 @@ export default function DashboardPage() {
             {dayMode === "RECOVERY" && "Tired or sick - Take it easy 🌙"}
             {dayMode === "MINIMAL" && "Bad day - Just show up 🌱"}
           </p>
+        </div>
+
+        {/* Stoic Writing Section */}
+        <div className="mb-8">
+          <p className="text-sm text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
+            <ScrollText className="w-4 h-4" />
+            Reflexão Estoica
+          </p>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div>
+                <Label className="text-base font-medium">{stoicQuestion}</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Resposta curta e objetiva (máx. 300 caracteres)
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Textarea
+                  value={stoicAnswer}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 300) {
+                      setStoicAnswer(e.target.value);
+                    }
+                  }}
+                  placeholder="Escreva sua reflexão..."
+                  className="min-h-24 resize-none"
+                  maxLength={300}
+                />
+                <div className="flex justify-between items-center">
+                  <span
+                    className={`text-xs ${stoicAnswer.length > 280 ? "text-orange-500" : "text-muted-foreground"}`}
+                  >
+                    {stoicAnswer.length}/300
+                  </span>
+                  <Button
+                    onClick={saveStoicEntry}
+                    disabled={!stoicAnswer.trim() || savingStoic}
+                    size="sm"
+                  >
+                    {savingStoic
+                      ? "Salvando..."
+                      : stoicEntry
+                        ? "Atualizar"
+                        : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+              {stoicEntry && (
+                <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  Reflexão salva
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Progress */}
