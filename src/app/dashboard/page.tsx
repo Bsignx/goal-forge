@@ -532,7 +532,9 @@ export default function DashboardPage() {
                 <Label>Link to Identity (optional)</Label>
                 <Select
                   value={newHabitIdentityId || "none"}
-                  onValueChange={(value) => setNewHabitIdentityId(value === "none" ? "" : value)}
+                  onValueChange={(value) =>
+                    setNewHabitIdentityId(value === "none" ? "" : value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="No identity (General)" />
@@ -607,7 +609,12 @@ export default function DashboardPage() {
                   value={editingHabit?.identityId || "none"}
                   onValueChange={(value) =>
                     setEditingHabit((prev) =>
-                      prev ? { ...prev, identityId: value === "none" ? null : value } : null,
+                      prev
+                        ? {
+                            ...prev,
+                            identityId: value === "none" ? null : value,
+                          }
+                        : null,
                     )
                   }
                 >
