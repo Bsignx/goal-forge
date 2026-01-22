@@ -14,6 +14,7 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  serverExternalPackages: ["@prisma/client"],
 };
 
 export default withPWA(nextConfig);
