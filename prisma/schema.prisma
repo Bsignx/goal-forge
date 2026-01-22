@@ -65,3 +65,30 @@ model Verification {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
+
+// Daily Habits Feature
+model Habit {
+  id          String       @id @default(cuid())
+  name        String
+  emoji       String       @default("✅")
+  order       Int          @default(0)
+  isActive    Boolean      @default(true)
+  userId      String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  completions Completion[]
+
+  @@index([userId])
+}
+
+model Completion {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  habitId   String
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@index([habitId])
+  @@index([date])
+}
