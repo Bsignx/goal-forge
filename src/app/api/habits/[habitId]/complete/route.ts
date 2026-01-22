@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Toggle completion for a habit on today's date
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ habitId: string }> }
+  { params }: { params: Promise<{ habitId: string }> },
 ) {
   const session = await auth.api.getSession({
     headers: await headers(),

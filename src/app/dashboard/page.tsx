@@ -56,8 +56,8 @@ export default function DashboardPage() {
     // Optimistic update
     setHabits((prev) =>
       prev.map((h) =>
-        h.id === habitId ? { ...h, completed: !h.completed } : h
-      )
+        h.id === habitId ? { ...h, completed: !h.completed } : h,
+      ),
     );
 
     try {
@@ -68,16 +68,16 @@ export default function DashboardPage() {
         // Revert on error
         setHabits((prev) =>
           prev.map((h) =>
-            h.id === habitId ? { ...h, completed: !h.completed } : h
-          )
+            h.id === habitId ? { ...h, completed: !h.completed } : h,
+          ),
         );
       }
     } catch {
       // Revert on error
       setHabits((prev) =>
         prev.map((h) =>
-          h.id === habitId ? { ...h, completed: !h.completed } : h
-        )
+          h.id === habitId ? { ...h, completed: !h.completed } : h,
+        ),
       );
     }
   };
