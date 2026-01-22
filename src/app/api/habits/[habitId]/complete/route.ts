@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { LoadMode } from "@/generated/prisma/client";
+import { LoadMode } from "@prisma/client";
 
 // Toggle completion for a habit on today's date
 export async function POST(
