@@ -325,38 +325,78 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!newHabitName.trim()) return;
 
+    // Create optimistic habit with temp ID
+    const tempId = `temp-${Date.now()}`;
+    const optimisticHabit: Habit = {
+      id: tempId,
+      name: newHabitName,
+      emoji: newHabitEmoji,
+      order: habits.length,
+      completed: false,
+      completionMode: null,
+      identityId: newHabitIdentityId || null,
+      identity: newHabitIdentityId
+        ? identities.find((i) => i.id === newHabitIdentityId) || null
+        : null,
+      fullDescription: newHabitFull || null,
+      recoveryDescription: newHabitRecovery || null,
+      minimalDescription: newHabitMinimal || null,
+      frequency: newHabitFrequency,
+      scheduledDays: newHabitScheduledDays,
+      targetPerWeek:
+        newHabitFrequency === "X_PER_WEEK" ? newHabitTargetPerWeek : null,
+      isScheduledToday: true,
+    };
+
+    // Optimistically add to list
+    setHabits((prev) => [...prev, optimisticHabit]);
+
+    // Close dialog and reset form immediately
+    setShowAddHabit(false);
+    setNewHabitName("");
+    setNewHabitEmoji("✅");
+    setNewHabitIdentityId("");
+    setNewHabitFull("");
+    setNewHabitRecovery("");
+    setNewHabitMinimal("");
+    setNewHabitFrequency("DAILY");
+    setNewHabitScheduledDays([]);
+    setNewHabitTargetPerWeek(3);
+
     try {
       const res = await fetch("/api/habits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: newHabitName,
-          emoji: newHabitEmoji,
-          identityId: newHabitIdentityId || null,
-          fullDescription: newHabitFull || null,
-          recoveryDescription: newHabitRecovery || null,
-          minimalDescription: newHabitMinimal || null,
-          frequency: newHabitFrequency,
-          scheduledDays: newHabitScheduledDays,
-          targetPerWeek:
-            newHabitFrequency === "X_PER_WEEK" ? newHabitTargetPerWeek : null,
+          name: optimisticHabit.name,
+          emoji: optimisticHabit.emoji,
+          identityId: optimisticHabit.identityId,
+          fullDescription: optimisticHabit.fullDescription,
+          recoveryDescription: optimisticHabit.recoveryDescription,
+          minimalDescription: optimisticHabit.minimalDescription,
+          frequency: optimisticHabit.frequency,
+          scheduledDays: optimisticHabit.scheduledDays,
+          targetPerWeek: optimisticHabit.targetPerWeek,
         }),
       });
       if (res.ok) {
-        setNewHabitName("");
-        setNewHabitEmoji("✅");
-        setNewHabitIdentityId("");
-        setNewHabitFull("");
-        setNewHabitRecovery("");
-        setNewHabitMinimal("");
-        setNewHabitFrequency("DAILY");
-        setNewHabitScheduledDays([]);
-        setNewHabitTargetPerWeek(3);
-        setShowAddHabit(false);
-        fetchHabits();
+        const newHabit = await res.json();
+        // Replace temp habit with real one
+        setHabits((prev) =>
+          prev.map((h) =>
+            h.id === tempId
+              ? { ...newHabit, completed: false, completionMode: null }
+              : h,
+          ),
+        );
+      } else {
+        // Revert on failure
+        setHabits((prev) => prev.filter((h) => h.id !== tempId));
       }
     } catch (error) {
       console.error("Failed to add habit:", error);
+      // Revert on error
+      setHabits((prev) => prev.filter((h) => h.id !== tempId));
     }
   };
 
@@ -364,23 +404,45 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!newIdentityName.trim()) return;
 
+    // Create optimistic identity with temp ID
+    const tempId = `temp-${Date.now()}`;
+    const optimisticIdentity: Identity = {
+      id: tempId,
+      name: newIdentityName,
+      emoji: newIdentityEmoji,
+    };
+
+    // Optimistically add to list
+    setIdentities((prev) => [...prev, optimisticIdentity]);
+
+    // Close dialog and reset form immediately
+    setShowAddIdentity(false);
+    setNewIdentityName("");
+    setNewIdentityEmoji("🎯");
+
     try {
       const res = await fetch("/api/identities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: newIdentityName,
-          emoji: newIdentityEmoji,
+          name: optimisticIdentity.name,
+          emoji: optimisticIdentity.emoji,
         }),
       });
       if (res.ok) {
-        setNewIdentityName("");
-        setNewIdentityEmoji("🎯");
-        setShowAddIdentity(false);
-        fetchIdentities();
+        const newIdentity = await res.json();
+        // Replace temp identity with real one
+        setIdentities((prev) =>
+          prev.map((i) => (i.id === tempId ? newIdentity : i)),
+        );
+      } else {
+        // Revert on failure
+        setIdentities((prev) => prev.filter((i) => i.id !== tempId));
       }
     } catch (error) {
       console.error("Failed to add identity:", error);
+      // Revert on error
+      setIdentities((prev) => prev.filter((i) => i.id !== tempId));
     }
   };
 
@@ -388,8 +450,42 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!editingHabit || !editingHabit.name.trim()) return;
 
+    // Store previous state for rollback
+    const previousHabits = [...habits];
+    const habitId = editingHabit.id;
+
+    // Optimistically update the habit
+    setHabits((prev) =>
+      prev.map((h) =>
+        h.id === habitId
+          ? {
+              ...h,
+              name: editingHabit.name,
+              emoji: editingHabit.emoji,
+              identityId: editingHabit.identityId,
+              identity: editingHabit.identityId
+                ? identities.find((i) => i.id === editingHabit.identityId) ||
+                  null
+                : null,
+              fullDescription: editingHabit.fullDescription || null,
+              recoveryDescription: editingHabit.recoveryDescription || null,
+              minimalDescription: editingHabit.minimalDescription || null,
+              frequency: editingHabit.frequency,
+              scheduledDays: editingHabit.scheduledDays,
+              targetPerWeek:
+                editingHabit.frequency === "X_PER_WEEK"
+                  ? editingHabit.targetPerWeek
+                  : null,
+            }
+          : h,
+      ),
+    );
+
+    // Close dialog immediately
+    setEditingHabit(null);
+
     try {
-      const res = await fetch(`/api/habits/${editingHabit.id}`, {
+      const res = await fetch(`/api/habits/${habitId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -407,12 +503,14 @@ export default function DashboardPage() {
               : null,
         }),
       });
-      if (res.ok) {
-        setEditingHabit(null);
-        fetchHabits();
+      if (!res.ok) {
+        // Revert on failure
+        setHabits(previousHabits);
       }
     } catch (error) {
       console.error("Failed to update habit:", error);
+      // Revert on error
+      setHabits(previousHabits);
     }
   };
 
@@ -420,8 +518,40 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!editingIdentity || !editingIdentity.name.trim()) return;
 
+    // Store previous state for rollback
+    const previousIdentities = [...identities];
+    const identityId = editingIdentity.id;
+
+    // Optimistically update the identity
+    setIdentities((prev) =>
+      prev.map((i) =>
+        i.id === identityId
+          ? { ...i, name: editingIdentity.name, emoji: editingIdentity.emoji }
+          : i,
+      ),
+    );
+
+    // Also update habits that reference this identity
+    setHabits((prev) =>
+      prev.map((h) =>
+        h.identityId === identityId
+          ? {
+              ...h,
+              identity: {
+                id: identityId,
+                name: editingIdentity.name,
+                emoji: editingIdentity.emoji,
+              },
+            }
+          : h,
+      ),
+    );
+
+    // Close dialog immediately
+    setEditingIdentity(null);
+
     try {
-      const res = await fetch(`/api/identities/${editingIdentity.id}`, {
+      const res = await fetch(`/api/identities/${identityId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -429,18 +559,43 @@ export default function DashboardPage() {
           emoji: editingIdentity.emoji,
         }),
       });
-      if (res.ok) {
-        setEditingIdentity(null);
-        fetchIdentities();
-        fetchHabits();
+      if (!res.ok) {
+        // Revert on failure
+        setIdentities(previousIdentities);
+        fetchHabits(); // Refresh habits to get correct identity data
       }
     } catch (error) {
       console.error("Failed to update identity:", error);
+      // Revert on error
+      setIdentities(previousIdentities);
+      fetchHabits();
     }
   };
 
   const confirmDelete = async () => {
     if (!deleteConfirm) return;
+
+    // Store previous state for rollback
+    const previousHabits = [...habits];
+    const previousIdentities = [...identities];
+
+    // Optimistically remove the item
+    if (deleteConfirm.type === "habit") {
+      setHabits((prev) => prev.filter((h) => h.id !== deleteConfirm.id));
+    } else {
+      setIdentities((prev) => prev.filter((i) => i.id !== deleteConfirm.id));
+      // Also clear identity reference from habits
+      setHabits((prev) =>
+        prev.map((h) =>
+          h.identityId === deleteConfirm.id
+            ? { ...h, identityId: null, identity: null }
+            : h,
+        ),
+      );
+    }
+
+    // Close dialog immediately
+    setDeleteConfirm(null);
 
     try {
       const endpoint =
@@ -449,20 +604,16 @@ export default function DashboardPage() {
           : `/api/identities/${deleteConfirm.id}`;
 
       const res = await fetch(endpoint, { method: "DELETE" });
-      if (res.ok) {
-        if (deleteConfirm.type === "habit") {
-          setHabits((prev) => prev.filter((h) => h.id !== deleteConfirm.id));
-        } else {
-          setIdentities((prev) =>
-            prev.filter((i) => i.id !== deleteConfirm.id),
-          );
-          fetchHabits();
-        }
+      if (!res.ok) {
+        // Revert on failure
+        setHabits(previousHabits);
+        setIdentities(previousIdentities);
       }
     } catch (error) {
       console.error("Failed to delete:", error);
-    } finally {
-      setDeleteConfirm(null);
+      // Revert on error
+      setHabits(previousHabits);
+      setIdentities(previousIdentities);
     }
   };
 
