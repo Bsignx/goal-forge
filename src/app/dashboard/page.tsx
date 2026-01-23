@@ -1237,7 +1237,7 @@ function HabitCard({
 
   const description = getDescription();
   const completedModeLabel =
-    habit.completionMode === "MINIMAL"
+    habit.completionMode === "FULL"
       ? "🟢"
       : habit.completionMode === "RECOVERY"
         ? "🟡"
