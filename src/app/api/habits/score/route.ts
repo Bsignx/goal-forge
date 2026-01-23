@@ -155,6 +155,6 @@ export async function GET() {
     totalPossible,
     totalCompleted,
     daysElapsed,
-    habitCount,
+    habitCount: habits.length,
   });
 }
