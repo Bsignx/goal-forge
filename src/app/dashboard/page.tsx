@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -477,11 +478,124 @@ export default function DashboardPage() {
   const totalCount = habits.length;
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
-  // Loading state
+  // Loading state with skeletons
   if (isPending || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-foreground">Loading...</div>
+      <div className="min-h-screen bg-background">
+        {/* Header Skeleton */}
+        <header className="border-b">
+          <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+            <Skeleton className="h-7 w-32" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-9 w-20" />
+              <Skeleton className="h-9 w-20" />
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-2xl mx-auto px-4 py-8">
+          {/* Daily Header Skeleton */}
+          <div className="mb-8 text-center">
+            <Skeleton className="h-4 w-24 mx-auto mb-2" />
+            <Skeleton className="h-8 w-48 mx-auto mb-2" />
+            <Skeleton className="h-4 w-64 mx-auto" />
+          </div>
+
+          {/* Energy Level Skeleton */}
+          <div className="mb-6">
+            <Skeleton className="h-4 w-28 mb-3" />
+            <div className="flex gap-2">
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 flex-1" />
+            </div>
+          </div>
+
+          {/* Activities Hero Section Skeleton */}
+          <Card className="mb-8 border-2 border-primary/20 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div>
+                    <Skeleton className="h-6 w-40 mb-1" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </div>
+                <Skeleton className="h-9 w-16" />
+              </div>
+              <Skeleton className="h-3 w-full mb-6" />
+              <div className="space-y-3">
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Weekly Score Skeleton */}
+          <div className="mb-8">
+            <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200 dark:border-violet-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div>
+                      <Skeleton className="h-4 w-28 mb-1" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Skeleton className="h-9 w-16 mb-1" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+                <Skeleton className="h-2 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Stoic Quote Skeleton */}
+          <div className="mb-8">
+            <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-800">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                  <div className="flex-1">
+                    <Skeleton className="h-5 w-full mb-2" />
+                    <Skeleton className="h-5 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-32 mt-2" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Stoic Reflection Skeleton */}
+          <div className="mb-8">
+            <Skeleton className="h-4 w-32 mb-3" />
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <Skeleton className="h-5 w-64" />
+                <Skeleton className="h-3 w-48" />
+                <Skeleton className="h-24 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Identities Skeleton */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-8 w-14" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-10 w-32 rounded-full" />
+              <Skeleton className="h-10 w-28 rounded-full" />
+              <Skeleton className="h-10 w-36 rounded-full" />
+            </div>
+          </div>
+        </main>
       </div>
     );
   }

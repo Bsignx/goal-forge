@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import {
@@ -196,8 +197,65 @@ export default function RadarPage() {
 
   if (isPending || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-foreground">Loading...</div>
+      <div className="min-h-screen bg-background">
+        {/* Header Skeleton */}
+        <header className="border-b">
+          <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-8 w-8" />
+              <Skeleton className="h-7 w-32" />
+            </div>
+            <Skeleton className="h-9 w-24" />
+          </div>
+        </header>
+
+        <main className="max-w-2xl mx-auto px-4 py-8">
+          {/* Week Header Skeleton */}
+          <div className="mb-8 text-center">
+            <Skeleton className="h-4 w-24 mx-auto mb-2" />
+            <Skeleton className="h-8 w-40 mx-auto mb-2" />
+            <Skeleton className="h-4 w-56 mx-auto" />
+          </div>
+
+          {/* Status Summary Skeleton */}
+          <div className="mb-8">
+            <div className="flex justify-center gap-6">
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-6 w-16" />
+            </div>
+          </div>
+
+          {/* Radar Areas Skeleton */}
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div>
+                        <Skeleton className="h-5 w-24 mb-1" />
+                        <Skeleton className="h-3 w-40" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Notes Skeleton */}
+          <div className="mt-8">
+            <Skeleton className="h-4 w-24 mb-2" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        </main>
       </div>
     );
   }
