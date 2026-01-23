@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Daily questions rotation
 const STOIC_QUESTIONS = [
-  "O que eu controlei hoje?",
-  "Onde reagi mal?",
-  "O que fiz apesar da vontade?",
+  "What did I control today?",
+  "Where did I react poorly?",
+  "What did I do despite not wanting to?",
 ];
 
 // Stoic quotes collection

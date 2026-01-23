@@ -521,14 +521,14 @@ export default function DashboardPage() {
         <div className="mb-8">
           <p className="text-sm text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
             <ScrollText className="w-4 h-4" />
-            Reflexão Estoica
+            Stoic Reflection
           </p>
           <Card>
             <CardContent className="p-4 space-y-3">
               <div>
                 <Label className="text-base font-medium">{stoicQuestion}</Label>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Resposta curta e objetiva (máx. 300 caracteres)
+                  Short and objective answer (max 300 characters)
                 </p>
               </div>
               <div className="space-y-2">
@@ -539,7 +539,7 @@ export default function DashboardPage() {
                       setStoicAnswer(e.target.value);
                     }
                   }}
-                  placeholder="Escreva sua reflexão..."
+                  placeholder="Write your reflection..."
                   className="min-h-24 resize-none"
                   maxLength={300}
                 />
@@ -555,17 +555,17 @@ export default function DashboardPage() {
                     size="sm"
                   >
                     {savingStoic
-                      ? "Salvando..."
+                      ? "Saving..."
                       : stoicEntry
-                        ? "Atualizar"
-                        : "Salvar"}
+                        ? "Update"
+                        : "Save"}
                   </Button>
                 </div>
               </div>
               {stoicEntry && (
                 <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
                   <Check className="w-3 h-3" />
-                  Reflexão salva
+                  Reflection saved
                 </p>
               )}
             </CardContent>
