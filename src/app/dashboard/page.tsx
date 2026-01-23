@@ -120,6 +120,14 @@ export default function DashboardPage() {
   } | null>(null);
   const [savingStoic, setSavingStoic] = useState(false);
 
+  // Weekly execution score state
+  const [weeklyScore, setWeeklyScore] = useState<{
+    score: number;
+    totalPossible: number;
+    totalCompleted: number;
+    daysElapsed: number;
+  } | null>(null);
+
   // Form state
   const [newHabitName, setNewHabitName] = useState("");
   const [newHabitEmoji, setNewHabitEmoji] = useState("✅");
@@ -176,6 +184,23 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchWeeklyScore = useCallback(async () => {
+    try {
+      const res = await fetch("/api/habits/score");
+      if (res.ok) {
+        const data = await res.json();
+        setWeeklyScore({
+          score: data.weeklyScore,
+          totalPossible: data.totalPossible,
+          totalCompleted: data.totalCompleted,
+          daysElapsed: data.daysElapsed,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch weekly score:", error);
+    }
+  }, []);
+
   // Effects
   useEffect(() => {
     if (!isPending && !session) {
@@ -188,8 +213,9 @@ export default function DashboardPage() {
       fetchHabits();
       fetchIdentities();
       fetchStoicEntry();
+      fetchWeeklyScore();
     }
-  }, [session, fetchHabits, fetchIdentities, fetchStoicEntry]);
+  }, [session, fetchHabits, fetchIdentities, fetchStoicEntry, fetchWeeklyScore]);
 
   // Handlers
   const handleSignOut = async () => {
@@ -255,6 +281,9 @@ export default function DashboardPage() {
               : h,
           ),
         );
+      } else {
+        // Refresh weekly score after successful toggle
+        fetchWeeklyScore();
       }
     } catch {
       setHabits((prev) =>
@@ -495,6 +524,44 @@ export default function DashboardPage() {
             {dayMode === "MINIMAL" && "Bad day - Just show up 🌱"}
           </p>
         </div>
+
+        {/* Weekly Execution Score */}
+        {weeklyScore && weeklyScore.totalPossible > 0 && (
+          <div className="mb-8">
+            <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200 dark:border-violet-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">📊</span>
+                    <div>
+                      <p className="text-sm font-medium text-violet-900 dark:text-violet-100">
+                        Weekly Execution
+                      </p>
+                      <p className="text-xs text-violet-600 dark:text-violet-300">
+                        Day {weeklyScore.daysElapsed} of 7
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold text-violet-900 dark:text-violet-100">
+                      {weeklyScore.score}%
+                    </p>
+                    <p className="text-xs text-violet-600 dark:text-violet-300">
+                      {weeklyScore.totalCompleted}/{weeklyScore.totalPossible} completed
+                    </p>
+                  </div>
+                </div>
+                <Progress 
+                  value={weeklyScore.score} 
+                  className="h-2 bg-violet-200 dark:bg-violet-800" 
+                />
+                <p className="text-xs text-violet-600 dark:text-violet-400 mt-2 text-center italic">
+                  Streaks break people. Percentages educate.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Stoic Quote of the Day */}
         {stoicQuote && (
