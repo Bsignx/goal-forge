@@ -42,6 +42,9 @@ export async function POST(request: NextRequest) {
     fullDescription,
     recoveryDescription,
     minimalDescription,
+    frequency,
+    scheduledDays,
+    targetPerWeek,
   } = body;
 
   if (!name) {
@@ -77,6 +80,9 @@ export async function POST(request: NextRequest) {
       fullDescription: fullDescription || null,
       recoveryDescription: recoveryDescription || null,
       minimalDescription: minimalDescription || null,
+      frequency: frequency || "DAILY",
+      scheduledDays: scheduledDays || [],
+      targetPerWeek: targetPerWeek || null,
     },
   });
 

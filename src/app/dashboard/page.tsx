@@ -50,6 +50,12 @@ import Link from "next/link";
 
 // Types
 type LoadMode = "FULL" | "RECOVERY" | "MINIMAL";
+type HabitFrequency =
+  | "DAILY"
+  | "WEEKDAYS"
+  | "WEEKENDS"
+  | "SPECIFIC_DAYS"
+  | "X_PER_WEEK";
 
 type Identity = {
   id: string;
@@ -69,6 +75,11 @@ type Habit = {
   fullDescription: string | null;
   recoveryDescription: string | null;
   minimalDescription: string | null;
+  frequency: HabitFrequency;
+  scheduledDays: number[];
+  targetPerWeek: number | null;
+  completionsThisWeek?: number;
+  isScheduledToday?: boolean;
 };
 
 type EditingHabit = {
@@ -79,6 +90,9 @@ type EditingHabit = {
   fullDescription: string;
   recoveryDescription: string;
   minimalDescription: string;
+  frequency: HabitFrequency;
+  scheduledDays: number[];
+  targetPerWeek: number | null;
 } | null;
 
 type EditingIdentity = {
@@ -135,6 +149,12 @@ export default function DashboardPage() {
   const [newHabitFull, setNewHabitFull] = useState("");
   const [newHabitRecovery, setNewHabitRecovery] = useState("");
   const [newHabitMinimal, setNewHabitMinimal] = useState("");
+  const [newHabitFrequency, setNewHabitFrequency] =
+    useState<HabitFrequency>("DAILY");
+  const [newHabitScheduledDays, setNewHabitScheduledDays] = useState<number[]>(
+    [],
+  );
+  const [newHabitTargetPerWeek, setNewHabitTargetPerWeek] = useState<number>(3);
   const [newIdentityName, setNewIdentityName] = useState("");
   const [newIdentityEmoji, setNewIdentityEmoji] = useState("🎯");
 
@@ -215,7 +235,13 @@ export default function DashboardPage() {
       fetchStoicEntry();
       fetchWeeklyScore();
     }
-  }, [session, fetchHabits, fetchIdentities, fetchStoicEntry, fetchWeeklyScore]);
+  }, [
+    session,
+    fetchHabits,
+    fetchIdentities,
+    fetchStoicEntry,
+    fetchWeeklyScore,
+  ]);
 
   // Handlers
   const handleSignOut = async () => {
@@ -309,6 +335,10 @@ export default function DashboardPage() {
           fullDescription: newHabitFull || null,
           recoveryDescription: newHabitRecovery || null,
           minimalDescription: newHabitMinimal || null,
+          frequency: newHabitFrequency,
+          scheduledDays: newHabitScheduledDays,
+          targetPerWeek:
+            newHabitFrequency === "X_PER_WEEK" ? newHabitTargetPerWeek : null,
         }),
       });
       if (res.ok) {
@@ -318,6 +348,9 @@ export default function DashboardPage() {
         setNewHabitFull("");
         setNewHabitRecovery("");
         setNewHabitMinimal("");
+        setNewHabitFrequency("DAILY");
+        setNewHabitScheduledDays([]);
+        setNewHabitTargetPerWeek(3);
         setShowAddHabit(false);
         fetchHabits();
       }
@@ -365,6 +398,12 @@ export default function DashboardPage() {
           fullDescription: editingHabit.fullDescription || null,
           recoveryDescription: editingHabit.recoveryDescription || null,
           minimalDescription: editingHabit.minimalDescription || null,
+          frequency: editingHabit.frequency,
+          scheduledDays: editingHabit.scheduledDays,
+          targetPerWeek:
+            editingHabit.frequency === "X_PER_WEEK"
+              ? editingHabit.targetPerWeek
+              : null,
         }),
       });
       if (res.ok) {
@@ -547,13 +586,14 @@ export default function DashboardPage() {
                       {weeklyScore.score}%
                     </p>
                     <p className="text-xs text-violet-600 dark:text-violet-300">
-                      {weeklyScore.totalCompleted}/{weeklyScore.totalPossible} completed
+                      {weeklyScore.totalCompleted}/{weeklyScore.totalPossible}{" "}
+                      completed
                     </p>
                   </div>
                 </div>
-                <Progress 
-                  value={weeklyScore.score} 
-                  className="h-2 bg-violet-200 dark:bg-violet-800" 
+                <Progress
+                  value={weeklyScore.score}
+                  className="h-2 bg-violet-200 dark:bg-violet-800"
                 />
                 <p className="text-xs text-violet-600 dark:text-violet-400 mt-2 text-center italic">
                   Streaks break people. Percentages educate.
@@ -621,11 +661,7 @@ export default function DashboardPage() {
                     disabled={!stoicAnswer.trim() || savingStoic}
                     size="sm"
                   >
-                    {savingStoic
-                      ? "Saving..."
-                      : stoicEntry
-                        ? "Update"
-                        : "Save"}
+                    {savingStoic ? "Saving..." : stoicEntry ? "Update" : "Save"}
                   </Button>
                 </div>
               </div>
@@ -728,6 +764,9 @@ export default function DashboardPage() {
                           fullDescription: h.fullDescription || "",
                           recoveryDescription: h.recoveryDescription || "",
                           minimalDescription: h.minimalDescription || "",
+                          frequency: h.frequency || "DAILY",
+                          scheduledDays: h.scheduledDays || [],
+                          targetPerWeek: h.targetPerWeek || null,
                         })
                       }
                       onDelete={(id) => setDeleteConfirm({ type: "habit", id })}
@@ -765,6 +804,9 @@ export default function DashboardPage() {
                           fullDescription: h.fullDescription || "",
                           recoveryDescription: h.recoveryDescription || "",
                           minimalDescription: h.minimalDescription || "",
+                          frequency: h.frequency || "DAILY",
+                          scheduledDays: h.scheduledDays || [],
+                          targetPerWeek: h.targetPerWeek || null,
                         })
                       }
                       onDelete={(id) => setDeleteConfirm({ type: "habit", id })}
@@ -861,6 +903,87 @@ export default function DashboardPage() {
                 </Select>
               </div>
             )}
+
+            {/* Frequency Selection */}
+            <div className="space-y-3 border-t pt-4">
+              <p className="text-sm font-medium flex items-center gap-2">
+                📅 Frequency
+              </p>
+              <Select
+                value={newHabitFrequency}
+                onValueChange={(value: HabitFrequency) => {
+                  setNewHabitFrequency(value);
+                  if (value === "WEEKDAYS") {
+                    setNewHabitScheduledDays([1, 2, 3, 4, 5]);
+                  } else if (value === "WEEKENDS") {
+                    setNewHabitScheduledDays([0, 6]);
+                  } else if (value !== "SPECIFIC_DAYS") {
+                    setNewHabitScheduledDays([]);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DAILY">Every day</SelectItem>
+                  <SelectItem value="WEEKDAYS">Weekdays (Mon-Fri)</SelectItem>
+                  <SelectItem value="WEEKENDS">Weekends (Sat-Sun)</SelectItem>
+                  <SelectItem value="SPECIFIC_DAYS">Specific days</SelectItem>
+                  <SelectItem value="X_PER_WEEK">X times per week</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {newHabitFrequency === "SPECIFIC_DAYS" && (
+                <div className="flex flex-wrap gap-2">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                    (day, index) => (
+                      <Button
+                        key={day}
+                        type="button"
+                        size="sm"
+                        variant={
+                          newHabitScheduledDays.includes(index)
+                            ? "default"
+                            : "outline"
+                        }
+                        onClick={() => {
+                          if (newHabitScheduledDays.includes(index)) {
+                            setNewHabitScheduledDays(
+                              newHabitScheduledDays.filter((d) => d !== index),
+                            );
+                          } else {
+                            setNewHabitScheduledDays(
+                              [...newHabitScheduledDays, index].sort(),
+                            );
+                          }
+                        }}
+                      >
+                        {day}
+                      </Button>
+                    ),
+                  )}
+                </div>
+              )}
+
+              {newHabitFrequency === "X_PER_WEEK" && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={7}
+                    value={newHabitTargetPerWeek}
+                    onChange={(e) =>
+                      setNewHabitTargetPerWeek(parseInt(e.target.value) || 1)
+                    }
+                    className="w-20"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    times per week
+                  </span>
+                </div>
+              )}
+            </div>
 
             {/* Load System (Anti-Burnout) */}
             <div className="space-y-3 border-t pt-4">
@@ -985,6 +1108,106 @@ export default function DashboardPage() {
                 </Select>
               </div>
             )}
+
+            {/* Frequency Selection */}
+            <div className="space-y-3 border-t pt-4">
+              <p className="text-sm font-medium flex items-center gap-2">
+                📅 Frequency
+              </p>
+              <Select
+                value={editingHabit?.frequency || "DAILY"}
+                onValueChange={(value: HabitFrequency) => {
+                  setEditingHabit((prev) => {
+                    if (!prev) return null;
+                    let scheduledDays = prev.scheduledDays;
+                    if (value === "WEEKDAYS") {
+                      scheduledDays = [1, 2, 3, 4, 5];
+                    } else if (value === "WEEKENDS") {
+                      scheduledDays = [0, 6];
+                    } else if (value !== "SPECIFIC_DAYS") {
+                      scheduledDays = [];
+                    }
+                    return { ...prev, frequency: value, scheduledDays };
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DAILY">Every day</SelectItem>
+                  <SelectItem value="WEEKDAYS">Weekdays (Mon-Fri)</SelectItem>
+                  <SelectItem value="WEEKENDS">Weekends (Sat-Sun)</SelectItem>
+                  <SelectItem value="SPECIFIC_DAYS">Specific days</SelectItem>
+                  <SelectItem value="X_PER_WEEK">X times per week</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {editingHabit?.frequency === "SPECIFIC_DAYS" && (
+                <div className="flex flex-wrap gap-2">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                    (day, index) => (
+                      <Button
+                        key={day}
+                        type="button"
+                        size="sm"
+                        variant={
+                          (editingHabit?.scheduledDays || []).includes(index)
+                            ? "default"
+                            : "outline"
+                        }
+                        onClick={() => {
+                          setEditingHabit((prev) => {
+                            if (!prev) return null;
+                            const current = prev.scheduledDays || [];
+                            if (current.includes(index)) {
+                              return {
+                                ...prev,
+                                scheduledDays: current.filter(
+                                  (d) => d !== index,
+                                ),
+                              };
+                            } else {
+                              return {
+                                ...prev,
+                                scheduledDays: [...current, index].sort(),
+                              };
+                            }
+                          });
+                        }}
+                      >
+                        {day}
+                      </Button>
+                    ),
+                  )}
+                </div>
+              )}
+
+              {editingHabit?.frequency === "X_PER_WEEK" && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={7}
+                    value={editingHabit?.targetPerWeek || 3}
+                    onChange={(e) =>
+                      setEditingHabit((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              targetPerWeek: parseInt(e.target.value) || 1,
+                            }
+                          : null,
+                      )
+                    }
+                    className="w-20"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    times per week
+                  </span>
+                </div>
+              )}
+            </div>
 
             {/* Load System (Anti-Burnout) */}
             <div className="space-y-3 border-t pt-4">
@@ -1235,7 +1458,25 @@ function HabitCard({
     }
   };
 
+  // Get frequency label
+  const getFrequencyLabel = () => {
+    switch (habit.frequency) {
+      case "WEEKDAYS":
+        return "Mon-Fri";
+      case "WEEKENDS":
+        return "Sat-Sun";
+      case "SPECIFIC_DAYS":
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        return habit.scheduledDays.map((d) => dayNames[d].charAt(0)).join("");
+      case "X_PER_WEEK":
+        return `${habit.completionsThisWeek || 0}/${habit.targetPerWeek}/wk`;
+      default:
+        return null;
+    }
+  };
+
   const description = getDescription();
+  const frequencyLabel = getFrequencyLabel();
   const completedModeLabel =
     habit.completionMode === "FULL"
       ? "🟢"
@@ -1258,18 +1499,25 @@ function HabitCard({
         >
           <span className="text-2xl">{habit.emoji}</span>
           <div className="flex-1">
-            <span
-              className={`font-medium ${
-                habit.completed
-                  ? "text-green-700 dark:text-green-400 line-through"
-                  : ""
-              }`}
-            >
-              {habit.name}
-              {habit.completed && habit.completionMode && (
-                <span className="ml-2 text-sm">{completedModeLabel}</span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`font-medium ${
+                  habit.completed
+                    ? "text-green-700 dark:text-green-400 line-through"
+                    : ""
+                }`}
+              >
+                {habit.name}
+                {habit.completed && habit.completionMode && (
+                  <span className="ml-2 text-sm">{completedModeLabel}</span>
+                )}
+              </span>
+              {frequencyLabel && (
+                <span className="text-xs px-1.5 py-0.5 bg-muted rounded text-muted-foreground">
+                  {frequencyLabel}
+                </span>
               )}
-            </span>
+            </div>
             {description && (
               <p className="text-sm text-muted-foreground mt-0.5">
                 {description}

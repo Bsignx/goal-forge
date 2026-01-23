@@ -38,6 +38,9 @@ export async function PATCH(
     fullDescription,
     recoveryDescription,
     minimalDescription,
+    frequency,
+    scheduledDays,
+    targetPerWeek,
   } = body;
 
   // Verify identity belongs to user if provided
@@ -67,6 +70,11 @@ export async function PATCH(
       }),
       ...(minimalDescription !== undefined && {
         minimalDescription: minimalDescription || null,
+      }),
+      ...(frequency !== undefined && { frequency }),
+      ...(scheduledDays !== undefined && { scheduledDays }),
+      ...(targetPerWeek !== undefined && {
+        targetPerWeek: targetPerWeek || null,
       }),
     },
   });

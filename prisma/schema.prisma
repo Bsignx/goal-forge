@@ -82,6 +82,10 @@ model Habit {
   fullDescription     String?      // Normal day: "45 min workout"
   recoveryDescription String?      // Tired/sick: "20 min light exercise"
   minimalDescription  String?      // Bad day: "5 push-ups"
+  // Frequency System
+  frequency           HabitFrequency @default(DAILY)
+  scheduledDays       Int[]        @default([])  // 0=Sun, 1=Mon, ..., 6=Sat (for SPECIFIC_DAYS)
+  targetPerWeek       Int?         // For X_PER_WEEK frequency
 
   @@index([userId])
   @@index([identityId])
@@ -98,6 +102,15 @@ model Completion {
   @@unique([habitId, date])
   @@index([habitId])
   @@index([date])
+}
+
+// Habit frequency options
+enum HabitFrequency {
+  DAILY          // Every day
+  WEEKDAYS       // Monday to Friday
+  WEEKENDS       // Saturday and Sunday
+  SPECIFIC_DAYS  // Custom days (use scheduledDays)
+  X_PER_WEEK     // X times per week, any days (use targetPerWeek)
 }
 
 // Load modes for Anti-Burnout system
