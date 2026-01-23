@@ -526,7 +526,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Load Mode Selector (Anti-Burnout) */}
-        <div className="mb-8">
+        <div className="mb-6">
           <p className="text-sm text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
             <Battery className="w-4 h-4" />
             Energy Level
@@ -563,6 +563,146 @@ export default function DashboardPage() {
             {dayMode === "MINIMAL" && "Bad day - Just show up 🌱"}
           </p>
         </div>
+
+        {/* ===== TODAY'S ACTIVITIES - HERO SECTION ===== */}
+        <Card className="mb-8 border-2 border-primary/20 shadow-lg">
+          <CardContent className="p-6">
+            {/* Section Header with Progress */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">⚡</span>
+                <div>
+                  <h3 className="text-lg font-bold">Today&apos;s Activities</h3>
+                  {totalCount > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      {completedCount}/{totalCount} completed
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Button size="sm" onClick={() => setShowAddHabit(true)}>
+                <Plus className="w-4 h-4 mr-1" />
+                Add
+              </Button>
+            </div>
+
+            {/* Progress Bar */}
+            {totalCount > 0 && (
+              <div className="mb-6">
+                <Progress value={progress} className="h-3" />
+              </div>
+            )}
+
+            {/* Activities List */}
+            <div className="space-y-4">
+              {/* Habits grouped by identity */}
+              {identities.map((identity) => {
+                const identityHabits = habits.filter(
+                  (h) => h.identityId === identity.id,
+                );
+                if (identityHabits.length === 0) return null;
+
+                return (
+                  <div key={identity.id}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">{identity.emoji}</span>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {identity.name}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {identityHabits.map((habit) => (
+                        <HabitCard
+                          key={habit.id}
+                          habit={habit}
+                          dayMode={dayMode}
+                          onToggle={toggleHabit}
+                          onEdit={(h) =>
+                            setEditingHabit({
+                              ...h,
+                              identityId: h.identityId,
+                              fullDescription: h.fullDescription || "",
+                              recoveryDescription: h.recoveryDescription || "",
+                              minimalDescription: h.minimalDescription || "",
+                              frequency: h.frequency || "DAILY",
+                              scheduledDays: h.scheduledDays || [],
+                              targetPerWeek: h.targetPerWeek || null,
+                            })
+                          }
+                          onDelete={(id) =>
+                            setDeleteConfirm({ type: "habit", id })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Habits without identity */}
+              {habits.filter((h) => !h.identityId).length > 0 && (
+                <div>
+                  {identities.length > 0 && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">📋</span>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        General Activities
+                      </span>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    {habits
+                      .filter((h) => !h.identityId)
+                      .map((habit) => (
+                        <HabitCard
+                          key={habit.id}
+                          habit={habit}
+                          dayMode={dayMode}
+                          onToggle={toggleHabit}
+                          onEdit={(h) =>
+                            setEditingHabit({
+                              ...h,
+                              identityId: h.identityId,
+                              fullDescription: h.fullDescription || "",
+                              recoveryDescription: h.recoveryDescription || "",
+                              minimalDescription: h.minimalDescription || "",
+                              frequency: h.frequency || "DAILY",
+                              scheduledDays: h.scheduledDays || [],
+                              targetPerWeek: h.targetPerWeek || null,
+                            })
+                          }
+                          onDelete={(id) =>
+                            setDeleteConfirm({ type: "habit", id })
+                          }
+                        />
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {habits.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <span className="text-4xl block mb-3">🎯</span>
+                  <p className="mb-2">No activities for today yet.</p>
+                  <p className="text-sm">
+                    Add your first activity to get started!
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Celebration */}
+            {completedCount === totalCount && totalCount > 0 && (
+              <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
+                <span className="text-3xl">🎉</span>
+                <p className="mt-1 text-green-700 dark:text-green-400 font-medium text-sm">
+                  All done! Amazing work today!
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Weekly Execution Score */}
         {weeklyScore && weeklyScore.totalPossible > 0 && (
@@ -675,19 +815,6 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Progress */}
-        {totalCount > 0 && (
-          <div className="mb-8">
-            <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Daily Progress</span>
-              <span>
-                {completedCount}/{totalCount} ({Math.round(progress)}%)
-              </span>
-            </div>
-            <Progress value={progress} className="h-3" />
-          </div>
-        )}
-
         {/* Identities Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
@@ -732,120 +859,6 @@ export default function DashboardPage() {
             </Card>
           )}
         </div>
-
-        {/* Habits Section */}
-        <div className="space-y-6">
-          {/* Habits grouped by identity */}
-          {identities.map((identity) => {
-            const identityHabits = habits.filter(
-              (h) => h.identityId === identity.id,
-            );
-            if (identityHabits.length === 0) return null;
-
-            return (
-              <div key={identity.id}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-lg">{identity.emoji}</span>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {identity.name}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {identityHabits.map((habit) => (
-                    <HabitCard
-                      key={habit.id}
-                      habit={habit}
-                      dayMode={dayMode}
-                      onToggle={toggleHabit}
-                      onEdit={(h) =>
-                        setEditingHabit({
-                          ...h,
-                          identityId: h.identityId,
-                          fullDescription: h.fullDescription || "",
-                          recoveryDescription: h.recoveryDescription || "",
-                          minimalDescription: h.minimalDescription || "",
-                          frequency: h.frequency || "DAILY",
-                          scheduledDays: h.scheduledDays || [],
-                          targetPerWeek: h.targetPerWeek || null,
-                        })
-                      }
-                      onDelete={(id) => setDeleteConfirm({ type: "habit", id })}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Habits without identity */}
-          {habits.filter((h) => !h.identityId).length > 0 && (
-            <div>
-              {identities.length > 0 && (
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-lg">📋</span>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    General Activities
-                  </span>
-                </div>
-              )}
-              <div className="space-y-2">
-                {habits
-                  .filter((h) => !h.identityId)
-                  .map((habit) => (
-                    <HabitCard
-                      key={habit.id}
-                      habit={habit}
-                      dayMode={dayMode}
-                      onToggle={toggleHabit}
-                      onEdit={(h) =>
-                        setEditingHabit({
-                          ...h,
-                          identityId: h.identityId,
-                          fullDescription: h.fullDescription || "",
-                          recoveryDescription: h.recoveryDescription || "",
-                          minimalDescription: h.minimalDescription || "",
-                          frequency: h.frequency || "DAILY",
-                          scheduledDays: h.scheduledDays || [],
-                          targetPerWeek: h.targetPerWeek || null,
-                        })
-                      }
-                      onDelete={(id) => setDeleteConfirm({ type: "habit", id })}
-                    />
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Empty state */}
-          {habits.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="mb-4">No activities registered yet.</p>
-              <p className="text-sm">Click the button below to add one!</p>
-            </div>
-          )}
-        </div>
-
-        {/* Add Habit Button */}
-        <Button
-          variant="outline"
-          className="mt-6 w-full py-6 border-dashed"
-          onClick={() => setShowAddHabit(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add activity
-        </Button>
-
-        {/* Celebration */}
-        {completedCount === totalCount && totalCount > 0 && (
-          <Card className="mt-8 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-            <CardContent className="py-6 text-center">
-              <span className="text-4xl">🎉</span>
-              <p className="mt-2 text-green-700 dark:text-green-400 font-medium">
-                Congratulations! You completed all activities for today!
-              </p>
-            </CardContent>
-          </Card>
-        )}
       </main>
 
       {/* Add Habit Dialog */}
