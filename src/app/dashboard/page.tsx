@@ -114,6 +114,10 @@ export default function DashboardPage() {
     id: string;
     answer: string;
   } | null>(null);
+  const [stoicQuote, setStoicQuote] = useState<{
+    text: string;
+    author: string;
+  } | null>(null);
   const [savingStoic, setSavingStoic] = useState(false);
 
   // Form state
@@ -159,6 +163,9 @@ export default function DashboardPage() {
       if (res.ok) {
         const data = await res.json();
         setStoicQuestion(data.question);
+        if (data.quote) {
+          setStoicQuote(data.quote);
+        }
         if (data.entry) {
           setStoicEntry(data.entry);
           setStoicAnswer(data.entry.answer);
@@ -488,6 +495,27 @@ export default function DashboardPage() {
             {dayMode === "MINIMAL" && "Bad day - Just show up 🌱"}
           </p>
         </div>
+
+        {/* Stoic Quote of the Day */}
+        {stoicQuote && (
+          <div className="mb-8">
+            <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-800">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">📜</span>
+                  <div className="flex-1">
+                    <p className="text-lg italic text-amber-900 dark:text-amber-100 leading-relaxed">
+                      &ldquo;{stoicQuote.text}&rdquo;
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-2 font-medium">
+                      — {stoicQuote.author}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Stoic Writing Section */}
         <div className="mb-8">
