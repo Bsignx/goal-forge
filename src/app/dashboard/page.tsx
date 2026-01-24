@@ -1055,7 +1055,9 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3">
                 <span className="text-2xl sm:text-3xl">⚡</span>
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold">Today&apos;s Activities</h3>
+                  <h3 className="text-base sm:text-lg font-bold">
+                    Today&apos;s Activities
+                  </h3>
                   {totalCount > 0 && (
                     <p className="text-sm text-muted-foreground">
                       {completedCount}/{totalCount} completed
@@ -1074,7 +1076,11 @@ export default function DashboardPage() {
                   <span className="hidden sm:inline">Task</span>
                   <span className="sm:hidden">One-time</span>
                 </Button>
-                <Button size="sm" onClick={() => setShowAddHabit(true)} className="flex-1 sm:flex-none">
+                <Button
+                  size="sm"
+                  onClick={() => setShowAddHabit(true)}
+                  className="flex-1 sm:flex-none"
+                >
                   <Plus className="w-4 h-4 sm:mr-1" />
                   <span className="hidden sm:inline">Habit</span>
                   <span className="sm:hidden">Recurring</span>
@@ -2246,7 +2252,9 @@ function HabitCard({
             onClick={() => onToggle(habit.id)}
             className="flex items-start gap-2 sm:gap-3 flex-1 text-left min-w-0"
           >
-            <span className="text-xl sm:text-2xl shrink-0 mt-0.5">{habit.emoji}</span>
+            <span className="text-xl sm:text-2xl shrink-0 mt-0.5">
+              {habit.emoji}
+            </span>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                 <span
@@ -2258,7 +2266,9 @@ function HabitCard({
                 >
                   {habit.name}
                   {habit.completed && habit.completionMode && (
-                    <span className="ml-1 sm:ml-2 text-sm">{completedModeLabel}</span>
+                    <span className="ml-1 sm:ml-2 text-sm">
+                      {completedModeLabel}
+                    </span>
                   )}
                 </span>
                 {frequencyLabel && (
@@ -2281,7 +2291,10 @@ function HabitCard({
               }`}
             >
               {habit.completed && (
-                <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" strokeWidth={3} />
+                <Check
+                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+                  strokeWidth={3}
+                />
               )}
             </div>
           </button>
@@ -2377,7 +2390,9 @@ function TaskCard({
             onClick={() => onToggle(task.id)}
             className="flex items-start gap-2 sm:gap-3 flex-1 text-left min-w-0"
           >
-            <span className="text-xl sm:text-2xl shrink-0 mt-0.5">{task.emoji}</span>
+            <span className="text-xl sm:text-2xl shrink-0 mt-0.5">
+              {task.emoji}
+            </span>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                 <span
@@ -2412,7 +2427,10 @@ function TaskCard({
               }`}
             >
               {task.completed && (
-                <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" strokeWidth={3} />
+                <Check
+                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+                  strokeWidth={3}
+                />
               )}
             </div>
           </button>
