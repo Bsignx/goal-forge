@@ -137,6 +137,7 @@ model Identity {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   habits    Habit[]
+  tasks     Task[]
 
   @@index([userId])
 }
@@ -173,4 +174,24 @@ model StoicEntry {
   @@unique([userId, date])
   @@index([userId])
   @@index([date])
+}
+
+// One-time Tasks (non-recurring)
+model Task {
+  id          String    @id @default(cuid())
+  name        String
+  emoji       String    @default("⚡")
+  order       Int       @default(0)
+  dueDate     DateTime? @db.Date  // Optional due date
+  completed   Boolean   @default(false)
+  completedAt DateTime? // When it was completed
+  userId      String
+  identityId  String?
+  identity    Identity? @relation(fields: [identityId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([identityId])
+  @@index([dueDate])
 }

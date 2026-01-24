@@ -102,23 +102,49 @@ type EditingIdentity = {
   emoji: string;
 } | null;
 
+type Task = {
+  id: string;
+  name: string;
+  emoji: string;
+  order: number;
+  dueDate: string | null;
+  completed: boolean;
+  completedAt: string | null;
+  identityId: string | null;
+  identity: Identity | null;
+};
+
+type EditingTask = {
+  id: string;
+  name: string;
+  emoji: string;
+  identityId: string | null;
+  dueDate: string;
+} | null;
+
+// Unified item type for the Today list
+type TodayItem = { type: "habit"; data: Habit } | { type: "task"; data: Task };
+
 export default function DashboardPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
 
   // State
   const [habits, setHabits] = useState<Habit[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [loading, setLoading] = useState(true);
   const [dayMode, setDayMode] = useState<LoadMode>("FULL");
 
   // Dialogs
   const [showAddHabit, setShowAddHabit] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
   const [showAddIdentity, setShowAddIdentity] = useState(false);
   const [editingHabit, setEditingHabit] = useState<EditingHabit>(null);
   const [editingIdentity, setEditingIdentity] = useState<EditingIdentity>(null);
+  const [editingTask, setEditingTask] = useState<EditingTask>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{
-    type: "habit" | "identity";
+    type: "habit" | "identity" | "task";
     id: string;
   } | null>(null);
 
@@ -158,6 +184,10 @@ export default function DashboardPage() {
   const [newHabitTargetPerWeek, setNewHabitTargetPerWeek] = useState<number>(3);
   const [newIdentityName, setNewIdentityName] = useState("");
   const [newIdentityEmoji, setNewIdentityEmoji] = useState("🎯");
+  const [newTaskName, setNewTaskName] = useState("");
+  const [newTaskEmoji, setNewTaskEmoji] = useState("⚡");
+  const [newTaskIdentityId, setNewTaskIdentityId] = useState<string>("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
 
   // Fetch functions
   const fetchHabits = useCallback(async () => {
@@ -183,6 +213,18 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error("Failed to fetch identities:", error);
+    }
+  }, []);
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      const res = await fetch("/api/tasks");
+      if (res.ok) {
+        const data = await res.json();
+        setTasks(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch tasks:", error);
     }
   }, []);
 
@@ -233,6 +275,7 @@ export default function DashboardPage() {
     if (session) {
       fetchHabits();
       fetchIdentities();
+      fetchTasks();
       fetchStoicEntry();
       fetchWeeklyScore();
     }
@@ -240,6 +283,7 @@ export default function DashboardPage() {
     session,
     fetchHabits,
     fetchIdentities,
+    fetchTasks,
     fetchStoicEntry,
     fetchWeeklyScore,
   ]);
@@ -446,6 +490,155 @@ export default function DashboardPage() {
     }
   };
 
+  // Task handlers
+  const toggleTask = async (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const wasCompleted = task.completed;
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              completed: !t.completed,
+              completedAt: !t.completed ? new Date().toISOString() : null,
+            }
+          : t,
+      ),
+    );
+
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/complete`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId
+              ? { ...t, completed: wasCompleted, completedAt: task.completedAt }
+              : t,
+          ),
+        );
+      }
+    } catch {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, completed: !t.completed } : t,
+        ),
+      );
+    }
+  };
+
+  const addTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskName.trim()) return;
+
+    // Create optimistic task with temp ID
+    const tempId = `temp-${Date.now()}`;
+    const optimisticTask: Task = {
+      id: tempId,
+      name: newTaskName,
+      emoji: newTaskEmoji,
+      order: tasks.length,
+      dueDate: newTaskDueDate || null,
+      completed: false,
+      completedAt: null,
+      identityId: newTaskIdentityId || null,
+      identity: newTaskIdentityId
+        ? identities.find((i) => i.id === newTaskIdentityId) || null
+        : null,
+    };
+
+    // Optimistically add to list
+    setTasks((prev) => [...prev, optimisticTask]);
+
+    // Close dialog and reset form immediately
+    setShowAddTask(false);
+    setNewTaskName("");
+    setNewTaskEmoji("⚡");
+    setNewTaskIdentityId("");
+    setNewTaskDueDate("");
+
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: optimisticTask.name,
+          emoji: optimisticTask.emoji,
+          identityId: optimisticTask.identityId,
+          dueDate: optimisticTask.dueDate,
+        }),
+      });
+      if (res.ok) {
+        const newTask = await res.json();
+        // Replace temp task with real one
+        setTasks((prev) => prev.map((t) => (t.id === tempId ? newTask : t)));
+      } else {
+        // Revert on failure
+        setTasks((prev) => prev.filter((t) => t.id !== tempId));
+      }
+    } catch (error) {
+      console.error("Failed to add task:", error);
+      // Revert on error
+      setTasks((prev) => prev.filter((t) => t.id !== tempId));
+    }
+  };
+
+  const updateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTask || !editingTask.name.trim()) return;
+
+    // Store previous state for rollback
+    const previousTasks = [...tasks];
+    const taskId = editingTask.id;
+
+    // Optimistically update the task
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              name: editingTask.name,
+              emoji: editingTask.emoji,
+              identityId: editingTask.identityId,
+              identity: editingTask.identityId
+                ? identities.find((i) => i.id === editingTask.identityId) ||
+                  null
+                : null,
+              dueDate: editingTask.dueDate || null,
+            }
+          : t,
+      ),
+    );
+
+    // Close dialog immediately
+    setEditingTask(null);
+
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editingTask.name,
+          emoji: editingTask.emoji,
+          identityId: editingTask.identityId,
+          dueDate: editingTask.dueDate || null,
+        }),
+      });
+      if (!res.ok) {
+        // Revert on failure
+        setTasks(previousTasks);
+      }
+    } catch (error) {
+      console.error("Failed to update task:", error);
+      // Revert on error
+      setTasks(previousTasks);
+    }
+  };
+
   const updateHabit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingHabit || !editingHabit.name.trim()) return;
@@ -578,18 +771,28 @@ export default function DashboardPage() {
     // Store previous state for rollback
     const previousHabits = [...habits];
     const previousIdentities = [...identities];
+    const previousTasks = [...tasks];
 
     // Optimistically remove the item
     if (deleteConfirm.type === "habit") {
       setHabits((prev) => prev.filter((h) => h.id !== deleteConfirm.id));
+    } else if (deleteConfirm.type === "task") {
+      setTasks((prev) => prev.filter((t) => t.id !== deleteConfirm.id));
     } else {
       setIdentities((prev) => prev.filter((i) => i.id !== deleteConfirm.id));
-      // Also clear identity reference from habits
+      // Also clear identity reference from habits and tasks
       setHabits((prev) =>
         prev.map((h) =>
           h.identityId === deleteConfirm.id
             ? { ...h, identityId: null, identity: null }
             : h,
+        ),
+      );
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.identityId === deleteConfirm.id
+            ? { ...t, identityId: null, identity: null }
+            : t,
         ),
       );
     }
@@ -598,22 +801,28 @@ export default function DashboardPage() {
     setDeleteConfirm(null);
 
     try {
-      const endpoint =
-        deleteConfirm.type === "habit"
-          ? `/api/habits/${deleteConfirm.id}`
-          : `/api/identities/${deleteConfirm.id}`;
+      let endpoint: string;
+      if (deleteConfirm.type === "habit") {
+        endpoint = `/api/habits/${deleteConfirm.id}`;
+      } else if (deleteConfirm.type === "task") {
+        endpoint = `/api/tasks/${deleteConfirm.id}`;
+      } else {
+        endpoint = `/api/identities/${deleteConfirm.id}`;
+      }
 
       const res = await fetch(endpoint, { method: "DELETE" });
       if (!res.ok) {
         // Revert on failure
         setHabits(previousHabits);
         setIdentities(previousIdentities);
+        setTasks(previousTasks);
       }
     } catch (error) {
       console.error("Failed to delete:", error);
       // Revert on error
       setHabits(previousHabits);
       setIdentities(previousIdentities);
+      setTasks(previousTasks);
     }
   };
 
@@ -625,9 +834,18 @@ export default function DashboardPage() {
     month: "long",
   });
 
-  const completedCount = habits.filter((h) => h.completed).length;
-  const totalCount = habits.length;
+  // Combine habits and tasks for unified progress
+  const completedHabits = habits.filter((h) => h.completed).length;
+  const completedTasks = tasks.filter((t) => t.completed).length;
+  const completedCount = completedHabits + completedTasks;
+  const totalCount = habits.length + tasks.length;
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+  // Create unified today items list
+  const todayItems: TodayItem[] = [
+    ...habits.map((h) => ({ type: "habit" as const, data: h })),
+    ...tasks.map((t) => ({ type: "task" as const, data: t })),
+  ];
 
   // Loading state with skeletons
   if (isPending || loading) {
@@ -845,10 +1063,20 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-              <Button size="sm" onClick={() => setShowAddHabit(true)}>
-                <Plus className="w-4 h-4 mr-1" />
-                Add
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowAddTask(true)}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Task
+                </Button>
+                <Button size="sm" onClick={() => setShowAddHabit(true)}>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Habit
+                </Button>
+              </div>
             </div>
 
             {/* Progress Bar */}
@@ -860,12 +1088,16 @@ export default function DashboardPage() {
 
             {/* Activities List */}
             <div className="space-y-4">
-              {/* Habits grouped by identity */}
+              {/* Items grouped by identity */}
               {identities.map((identity) => {
                 const identityHabits = habits.filter(
                   (h) => h.identityId === identity.id,
                 );
-                if (identityHabits.length === 0) return null;
+                const identityTasks = tasks.filter(
+                  (t) => t.identityId === identity.id,
+                );
+                if (identityHabits.length === 0 && identityTasks.length === 0)
+                  return null;
 
                 return (
                   <div key={identity.id}>
@@ -899,13 +1131,33 @@ export default function DashboardPage() {
                           }
                         />
                       ))}
+                      {identityTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onToggle={toggleTask}
+                          onEdit={(t) =>
+                            setEditingTask({
+                              id: t.id,
+                              name: t.name,
+                              emoji: t.emoji,
+                              identityId: t.identityId,
+                              dueDate: t.dueDate || "",
+                            })
+                          }
+                          onDelete={(id) =>
+                            setDeleteConfirm({ type: "task", id })
+                          }
+                        />
+                      ))}
                     </div>
                   </div>
                 );
               })}
 
-              {/* Habits without identity */}
-              {habits.filter((h) => !h.identityId).length > 0 && (
+              {/* Items without identity */}
+              {(habits.filter((h) => !h.identityId).length > 0 ||
+                tasks.filter((t) => !t.identityId).length > 0) && (
                 <div>
                   {identities.length > 0 && (
                     <div className="flex items-center gap-2 mb-2">
@@ -941,17 +1193,38 @@ export default function DashboardPage() {
                           }
                         />
                       ))}
+                    {tasks
+                      .filter((t) => !t.identityId)
+                      .map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onToggle={toggleTask}
+                          onEdit={(t) =>
+                            setEditingTask({
+                              id: t.id,
+                              name: t.name,
+                              emoji: t.emoji,
+                              identityId: t.identityId,
+                              dueDate: t.dueDate || "",
+                            })
+                          }
+                          onDelete={(id) =>
+                            setDeleteConfirm({ type: "task", id })
+                          }
+                        />
+                      ))}
                   </div>
                 </div>
               )}
 
               {/* Empty state */}
-              {habits.length === 0 && (
+              {habits.length === 0 && tasks.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <span className="text-4xl block mb-3">🎯</span>
                   <p className="mb-2">No activities for today yet.</p>
                   <p className="text-sm">
-                    Add your first activity to get started!
+                    Add a habit (recurring) or task (one-time) to get started!
                   </p>
                 </div>
               )}
@@ -1679,6 +1952,198 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Add Task Dialog */}
+      <Dialog open={showAddTask} onOpenChange={setShowAddTask}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Task</DialogTitle>
+            <DialogDescription>
+              Create a one-time task. Unlike habits, tasks disappear once
+              completed.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={addTask} className="space-y-4">
+            <div className="flex gap-3">
+              <div className="w-20 space-y-1.5">
+                <Label htmlFor="task-emoji">Emoji</Label>
+                <Input
+                  id="task-emoji"
+                  value={newTaskEmoji}
+                  onChange={(e) => setNewTaskEmoji(e.target.value)}
+                  className="text-center text-xl"
+                  placeholder="⚡"
+                />
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <Label htmlFor="task-name">Name</Label>
+                <Input
+                  id="task-name"
+                  value={newTaskName}
+                  onChange={(e) => setNewTaskName(e.target.value)}
+                  placeholder="Task name..."
+                  autoFocus
+                />
+              </div>
+            </div>
+            {identities.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Link to Identity (optional)</Label>
+                <Select
+                  value={newTaskIdentityId || "none"}
+                  onValueChange={(value) =>
+                    setNewTaskIdentityId(value === "none" ? "" : value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="No identity (General)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No identity (General)</SelectItem>
+                    {identities.map((identity) => (
+                      <SelectItem key={identity.id} value={identity.id}>
+                        {identity.emoji} {identity.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="task-due-date">Due Date (optional)</Label>
+              <Input
+                id="task-due-date"
+                type="date"
+                value={newTaskDueDate}
+                onChange={(e) => setNewTaskDueDate(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAddTask(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Add</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Task Dialog */}
+      <Dialog
+        open={!!editingTask}
+        onOpenChange={(open) => !open && setEditingTask(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={updateTask} className="space-y-4">
+            <div className="flex gap-3">
+              <div className="w-20 space-y-1.5">
+                <Label htmlFor="edit-task-emoji">Emoji</Label>
+                <Input
+                  id="edit-task-emoji"
+                  value={editingTask?.emoji || ""}
+                  onChange={(e) =>
+                    setEditingTask((prev) =>
+                      prev ? { ...prev, emoji: e.target.value } : null,
+                    )
+                  }
+                  className="text-center text-xl"
+                />
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <Label htmlFor="edit-task-name">Name</Label>
+                <Input
+                  id="edit-task-name"
+                  value={editingTask?.name || ""}
+                  onChange={(e) =>
+                    setEditingTask((prev) =>
+                      prev ? { ...prev, name: e.target.value } : null,
+                    )
+                  }
+                  autoFocus
+                />
+              </div>
+            </div>
+            {identities.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Link to Identity</Label>
+                <Select
+                  value={editingTask?.identityId || "none"}
+                  onValueChange={(value) =>
+                    setEditingTask((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            identityId: value === "none" ? null : value,
+                          }
+                        : null,
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="No identity (General)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No identity (General)</SelectItem>
+                    {identities.map((identity) => (
+                      <SelectItem key={identity.id} value={identity.id}>
+                        {identity.emoji} {identity.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-task-due-date">Due Date (optional)</Label>
+              <Input
+                id="edit-task-due-date"
+                type="date"
+                value={editingTask?.dueDate || ""}
+                onChange={(e) =>
+                  setEditingTask((prev) =>
+                    prev ? { ...prev, dueDate: e.target.value } : null,
+                  )
+                }
+              />
+            </div>
+            <div className="flex gap-2 justify-between">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  if (editingTask) {
+                    setDeleteConfirm({
+                      type: "task",
+                      id: editingTask.id,
+                    });
+                    setEditingTask(null);
+                  }
+                }}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingTask(null)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Save</Button>
+              </div>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={!!deleteConfirm}
@@ -1689,8 +2154,10 @@ export default function DashboardPage() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteConfirm?.type === "habit"
-                ? "This will permanently delete this activity."
-                : "This will delete the identity and unlink all associated activities."}
+                ? "This will permanently delete this habit."
+                : deleteConfirm?.type === "task"
+                  ? "This will permanently delete this task."
+                  : "This will delete the identity and unlink all associated activities."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1828,6 +2295,133 @@ function HabitCard({
             variant="ghost"
             size="icon-sm"
             onClick={() => onDelete(habit.id)}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// TaskCard Component
+function TaskCard({
+  task,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  task: Task;
+  onToggle: (id: string) => void;
+  onEdit: (task: Task) => void;
+  onDelete: (id: string) => void;
+}) {
+  // Format due date if present
+  const getDueDateLabel = () => {
+    if (!task.dueDate) return null;
+    const dueDate = new Date(task.dueDate);
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    dueDate.setUTCHours(0, 0, 0, 0);
+
+    const diffDays = Math.ceil(
+      (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (diffDays < 0)
+      return {
+        label: "Overdue",
+        className:
+          "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+      };
+    if (diffDays === 0)
+      return {
+        label: "Today",
+        className:
+          "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+      };
+    if (diffDays === 1)
+      return {
+        label: "Tomorrow",
+        className:
+          "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+      };
+    return {
+      label: dueDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      }),
+      className: "bg-muted text-muted-foreground",
+    };
+  };
+
+  const dueDateInfo = getDueDateLabel();
+
+  return (
+    <Card
+      className={`transition-all duration-200 ${
+        task.completed
+          ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+          : ""
+      }`}
+    >
+      <CardContent className="p-4 flex items-center gap-3">
+        <button
+          onClick={() => onToggle(task.id)}
+          className="flex items-center gap-3 flex-1 text-left"
+        >
+          <span className="text-2xl">{task.emoji}</span>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span
+                className={`font-medium ${
+                  task.completed
+                    ? "text-green-700 dark:text-green-400 line-through"
+                    : ""
+                }`}
+              >
+                {task.name}
+              </span>
+              {/* One-time indicator */}
+              <span className="text-xs px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 rounded text-violet-700 dark:text-violet-400">
+                ⚡ one-time
+              </span>
+              {dueDateInfo && (
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded ${dueDateInfo.className}`}
+                >
+                  {dueDateInfo.label}
+                </span>
+              )}
+            </div>
+          </div>
+          <div
+            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+              task.completed
+                ? "bg-green-500 border-green-500"
+                : "border-muted-foreground/30"
+            }`}
+          >
+            {task.completed && (
+              <Check className="w-4 h-4 text-white" strokeWidth={3} />
+            )}
+          </div>
+        </button>
+
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onEdit(task)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onDelete(task.id)}
             className="text-muted-foreground hover:text-destructive"
           >
             <Trash2 className="w-4 h-4" />
