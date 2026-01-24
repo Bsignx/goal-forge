@@ -1049,13 +1049,13 @@ export default function DashboardPage() {
 
         {/* ===== TODAY'S ACTIVITIES - HERO SECTION ===== */}
         <Card className="mb-8 border-2 border-primary/20 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {/* Section Header with Progress */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
-                <span className="text-3xl">⚡</span>
+                <span className="text-2xl sm:text-3xl">⚡</span>
                 <div>
-                  <h3 className="text-lg font-bold">Today&apos;s Activities</h3>
+                  <h3 className="text-base sm:text-lg font-bold">Today&apos;s Activities</h3>
                   {totalCount > 0 && (
                     <p className="text-sm text-muted-foreground">
                       {completedCount}/{totalCount} completed
@@ -1068,13 +1068,16 @@ export default function DashboardPage() {
                   size="sm"
                   variant="outline"
                   onClick={() => setShowAddTask(true)}
+                  className="flex-1 sm:flex-none"
                 >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Task
+                  <Plus className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Task</span>
+                  <span className="sm:hidden">One-time</span>
                 </Button>
-                <Button size="sm" onClick={() => setShowAddHabit(true)}>
-                  <Plus className="w-4 h-4 mr-1" />
-                  Habit
+                <Button size="sm" onClick={() => setShowAddHabit(true)} className="flex-1 sm:flex-none">
+                  <Plus className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Habit</span>
+                  <span className="sm:hidden">Recurring</span>
                 </Button>
               </div>
             </div>
@@ -2231,74 +2234,76 @@ function HabitCard({
 
   return (
     <Card
-      className={`transition-all duration-200 ${
+      className={`transition-all duration-200 overflow-hidden ${
         habit.completed
           ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
           : ""
       }`}
     >
-      <CardContent className="p-4 flex items-center gap-3">
-        <button
-          onClick={() => onToggle(habit.id)}
-          className="flex items-center gap-3 flex-1 text-left"
-        >
-          <span className="text-2xl">{habit.emoji}</span>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span
-                className={`font-medium ${
-                  habit.completed
-                    ? "text-green-700 dark:text-green-400 line-through"
-                    : ""
-                }`}
-              >
-                {habit.name}
-                {habit.completed && habit.completionMode && (
-                  <span className="ml-2 text-sm">{completedModeLabel}</span>
-                )}
-              </span>
-              {frequencyLabel && (
-                <span className="text-xs px-1.5 py-0.5 bg-muted rounded text-muted-foreground">
-                  {frequencyLabel}
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex items-start gap-2 sm:gap-3">
+          <button
+            onClick={() => onToggle(habit.id)}
+            className="flex items-start gap-2 sm:gap-3 flex-1 text-left min-w-0"
+          >
+            <span className="text-xl sm:text-2xl shrink-0 mt-0.5">{habit.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                <span
+                  className={`font-medium break-words ${
+                    habit.completed
+                      ? "text-green-700 dark:text-green-400 line-through"
+                      : ""
+                  }`}
+                >
+                  {habit.name}
+                  {habit.completed && habit.completionMode && (
+                    <span className="ml-1 sm:ml-2 text-sm">{completedModeLabel}</span>
+                  )}
                 </span>
+                {frequencyLabel && (
+                  <span className="text-xs px-1.5 py-0.5 bg-muted rounded text-muted-foreground whitespace-nowrap">
+                    {frequencyLabel}
+                  </span>
+                )}
+              </div>
+              {description && (
+                <p className="text-sm text-muted-foreground mt-0.5 break-words">
+                  {description}
+                </p>
               )}
             </div>
-            {description && (
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {description}
-              </p>
-            )}
-          </div>
-          <div
-            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-              habit.completed
-                ? "bg-green-500 border-green-500"
-                : "border-muted-foreground/30"
-            }`}
-          >
-            {habit.completed && (
-              <Check className="w-4 h-4 text-white" strokeWidth={3} />
-            )}
-          </div>
-        </button>
+            <div
+              className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 mt-0.5 ${
+                habit.completed
+                  ? "bg-green-500 border-green-500"
+                  : "border-muted-foreground/30"
+              }`}
+            >
+              {habit.completed && (
+                <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" strokeWidth={3} />
+              )}
+            </div>
+          </button>
 
-        <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => onEdit(habit)}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => onDelete(habit.id)}
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          <div className="flex gap-0.5 sm:gap-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onEdit(habit)}
+              className="text-muted-foreground hover:text-foreground h-7 w-7 sm:h-8 sm:w-8"
+            >
+              <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onDelete(habit.id)}
+              className="text-muted-foreground hover:text-destructive h-7 w-7 sm:h-8 sm:w-8"
+            >
+              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -2360,72 +2365,76 @@ function TaskCard({
 
   return (
     <Card
-      className={`transition-all duration-200 ${
+      className={`transition-all duration-200 overflow-hidden ${
         task.completed
           ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
           : ""
       }`}
     >
-      <CardContent className="p-4 flex items-center gap-3">
-        <button
-          onClick={() => onToggle(task.id)}
-          className="flex items-center gap-3 flex-1 text-left"
-        >
-          <span className="text-2xl">{task.emoji}</span>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span
-                className={`font-medium ${
-                  task.completed
-                    ? "text-green-700 dark:text-green-400 line-through"
-                    : ""
-                }`}
-              >
-                {task.name}
-              </span>
-              {/* One-time indicator */}
-              <span className="text-xs px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 rounded text-violet-700 dark:text-violet-400">
-                ⚡ one-time
-              </span>
-              {dueDateInfo && (
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex items-start gap-2 sm:gap-3">
+          <button
+            onClick={() => onToggle(task.id)}
+            className="flex items-start gap-2 sm:gap-3 flex-1 text-left min-w-0"
+          >
+            <span className="text-xl sm:text-2xl shrink-0 mt-0.5">{task.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                 <span
-                  className={`text-xs px-1.5 py-0.5 rounded ${dueDateInfo.className}`}
+                  className={`font-medium break-words ${
+                    task.completed
+                      ? "text-green-700 dark:text-green-400 line-through"
+                      : ""
+                  }`}
                 >
-                  {dueDateInfo.label}
+                  {task.name}
                 </span>
+              </div>
+              {/* Badges on second line for mobile */}
+              <div className="flex flex-wrap items-center gap-1 mt-1">
+                <span className="text-xs px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 rounded text-violet-700 dark:text-violet-400 whitespace-nowrap">
+                  ⚡ one-time
+                </span>
+                {dueDateInfo && (
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded whitespace-nowrap ${dueDateInfo.className}`}
+                  >
+                    {dueDateInfo.label}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div
+              className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 mt-0.5 ${
+                task.completed
+                  ? "bg-green-500 border-green-500"
+                  : "border-muted-foreground/30"
+              }`}
+            >
+              {task.completed && (
+                <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" strokeWidth={3} />
               )}
             </div>
-          </div>
-          <div
-            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-              task.completed
-                ? "bg-green-500 border-green-500"
-                : "border-muted-foreground/30"
-            }`}
-          >
-            {task.completed && (
-              <Check className="w-4 h-4 text-white" strokeWidth={3} />
-            )}
-          </div>
-        </button>
+          </button>
 
-        <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => onEdit(task)}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => onDelete(task.id)}
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          <div className="flex gap-0.5 sm:gap-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onEdit(task)}
+              className="text-muted-foreground hover:text-foreground h-7 w-7 sm:h-8 sm:w-8"
+            >
+              <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onDelete(task.id)}
+              className="text-muted-foreground hover:text-destructive h-7 w-7 sm:h-8 sm:w-8"
+            >
+              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
