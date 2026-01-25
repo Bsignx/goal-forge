@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -379,7 +380,8 @@ export default function DashboardPage() {
   const isOnVacation = useCallback(
     (date: Date) => {
       if (!userSettings || !userSettings.vacationMode) return false;
-      if (!userSettings.vacationStart || !userSettings.vacationEnd) return false;
+      if (!userSettings.vacationStart || !userSettings.vacationEnd)
+        return false;
 
       const start = new Date(userSettings.vacationStart);
       const end = new Date(userSettings.vacationEnd);
@@ -1127,11 +1129,7 @@ export default function DashboardPage() {
                 Radar
               </Button>
             </Link>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={openSettingsDialog}
-            >
+            <Button variant="outline" size="sm" onClick={openSettingsDialog}>
               <Settings className="w-4 h-4 mr-1" />
               <span className="hidden sm:inline">Settings</span>
             </Button>
@@ -1182,13 +1180,19 @@ export default function DashboardPage() {
           {isBreakDay && (
             <div className="mt-2 flex items-center justify-center gap-2">
               {selectedDateIsVacation && (
-                <Badge variant="secondary" className="bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300">
+                <Badge
+                  variant="secondary"
+                  className="bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300"
+                >
                   <Palmtree className="w-3 h-3 mr-1" />
                   Vacation Mode
                 </Badge>
               )}
               {selectedDateIsRestDay && !selectedDateIsVacation && (
-                <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                <Badge
+                  variant="secondary"
+                  className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                >
                   <Moon className="w-3 h-3 mr-1" />
                   Rest Day
                 </Badge>
@@ -1209,13 +1213,13 @@ export default function DashboardPage() {
           )}
 
           <p className="text-muted-foreground text-sm mt-2">
-            {isBreakDay 
-              ? (selectedDateIsVacation 
-                  ? "Taking a well-deserved break. Habits are paused." 
-                  : "Scheduled rest day. Recharge your batteries!")
-              : (isViewingToday
-                  ? "Just today. Nothing from yesterday. Nothing from tomorrow."
-                  : "Viewing a past day. You can edit completions here.")}
+            {isBreakDay
+              ? selectedDateIsVacation
+                ? "Taking a well-deserved break. Habits are paused."
+                : "Scheduled rest day. Recharge your batteries!"
+              : isViewingToday
+                ? "Just today. Nothing from yesterday. Nothing from tomorrow."
+                : "Viewing a past day. You can edit completions here."}
           </p>
         </div>
 
@@ -2426,12 +2430,16 @@ export default function DashboardPage() {
                     key={day}
                     variant={tempRestDays.includes(day) ? "default" : "outline"}
                     size="sm"
-                    className={tempRestDays.includes(day) ? "bg-purple-600 hover:bg-purple-700" : ""}
+                    className={
+                      tempRestDays.includes(day)
+                        ? "bg-purple-600 hover:bg-purple-700"
+                        : ""
+                    }
                     onClick={() => {
-                      setTempRestDays(prev => 
-                        prev.includes(day) 
-                          ? prev.filter(d => d !== day)
-                          : [...prev, day]
+                      setTempRestDays((prev) =>
+                        prev.includes(day)
+                          ? prev.filter((d) => d !== day)
+                          : [...prev, day],
                       );
                     }}
                   >
@@ -2453,7 +2461,9 @@ export default function DashboardPage() {
                 <Button
                   variant={tempVacationMode ? "default" : "outline"}
                   size="sm"
-                  className={tempVacationMode ? "bg-cyan-600 hover:bg-cyan-700" : ""}
+                  className={
+                    tempVacationMode ? "bg-cyan-600 hover:bg-cyan-700" : ""
+                  }
                   onClick={() => setTempVacationMode(!tempVacationMode)}
                 >
                   {tempVacationMode ? "On" : "Off"}
@@ -2462,7 +2472,7 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground mb-3">
                 Pause all habit tracking for a date range
               </p>
-              
+
               {tempVacationMode && (
                 <div className="grid grid-cols-2 gap-4 mt-4">
                   <div>
@@ -2490,9 +2500,7 @@ export default function DashboardPage() {
             <Button variant="outline" onClick={() => setShowSettings(false)}>
               Cancel
             </Button>
-            <Button onClick={saveSettings}>
-              Save Settings
-            </Button>
+            <Button onClick={saveSettings}>Save Settings</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
