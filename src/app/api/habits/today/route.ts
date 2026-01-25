@@ -39,7 +39,7 @@ function getWeekStart(date: Date = new Date()): Date {
   return d;
 }
 
-// Get today's completions for the current user
+// Get habits with completion status for a specific date
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -49,13 +49,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get today's date at midnight (UTC)
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  const dayOfWeek = today.getUTCDay();
-  const weekStart = getWeekStart(today);
+  // Get date from query param or default to today
+  const searchParams = request.nextUrl.searchParams;
+  const dateParam = searchParams.get("date");
 
-  // Get all habits with today's completion status and this week's completions
+  let targetDate: Date;
+  if (dateParam) {
+    targetDate = new Date(dateParam + "T00:00:00.000Z");
+  } else {
+    targetDate = new Date();
+    targetDate.setUTCHours(0, 0, 0, 0);
+  }
+
+  const dayOfWeek = targetDate.getUTCDay();
+  const weekStart = getWeekStart(targetDate);
+
+  // Get all habits with completion status for target date and this week's completions
   const habits = await prisma.habit.findMany({
     where: {
       userId: session.user.id,
@@ -66,7 +75,7 @@ export async function GET(request: NextRequest) {
         where: {
           date: {
             gte: weekStart,
-            lte: today,
+            lte: targetDate,
           },
         },
       },
@@ -77,16 +86,16 @@ export async function GET(request: NextRequest) {
 
   // Transform to include completed flag, schedule info, and filter by schedule
   const habitsWithStatus = habits.map((habit) => {
-    const todayCompletion = habit.completions.find(
-      (c) => c.date.getTime() === today.getTime(),
+    const targetDateCompletion = habit.completions.find(
+      (c) => c.date.getTime() === targetDate.getTime(),
     );
     const completionsThisWeek = habit.completions.length;
-    const isScheduledToday = isHabitScheduledForDay(
+    const isScheduledForDate = isHabitScheduledForDay(
       habit.frequency,
       habit.scheduledDays,
       habit.targetPerWeek,
       dayOfWeek,
-      completionsThisWeek - (todayCompletion ? 1 : 0), // Don't count today if already done
+      completionsThisWeek - (targetDateCompletion ? 1 : 0), // Don't count target date if already done
     );
 
     return {
@@ -94,8 +103,8 @@ export async function GET(request: NextRequest) {
       name: habit.name,
       emoji: habit.emoji,
       order: habit.order,
-      completed: !!todayCompletion,
-      completionMode: todayCompletion?.mode || null,
+      completed: !!targetDateCompletion,
+      completionMode: targetDateCompletion?.mode || null,
       identityId: habit.identityId,
       identity: habit.identity,
       fullDescription: habit.fullDescription,
@@ -105,7 +114,7 @@ export async function GET(request: NextRequest) {
       scheduledDays: habit.scheduledDays,
       targetPerWeek: habit.targetPerWeek,
       completionsThisWeek,
-      isScheduledToday,
+      isScheduledToday: isScheduledForDate,
     };
   });
 

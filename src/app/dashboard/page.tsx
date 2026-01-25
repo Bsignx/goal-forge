@@ -46,6 +46,11 @@ import {
   BatteryWarning,
   Radio,
   ScrollText,
+  ChevronLeft,
+  ChevronRight,
+  Settings,
+  Palmtree,
+  Moon,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -125,6 +130,15 @@ type EditingTask = {
 // Unified item type for the Today list
 type TodayItem = { type: "habit"; data: Habit } | { type: "task"; data: Task };
 
+// User Settings type
+type UserSettings = {
+  id: string;
+  restDays: number[];
+  vacationMode: boolean;
+  vacationStart: string | null;
+  vacationEnd: string | null;
+};
+
 export default function DashboardPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
@@ -135,11 +149,17 @@ export default function DashboardPage() {
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [loading, setLoading] = useState(true);
   const [dayMode, setDayMode] = useState<LoadMode>("FULL");
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now;
+  });
 
   // Dialogs
   const [showAddHabit, setShowAddHabit] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddIdentity, setShowAddIdentity] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [editingHabit, setEditingHabit] = useState<EditingHabit>(null);
   const [editingIdentity, setEditingIdentity] = useState<EditingIdentity>(null);
   const [editingTask, setEditingTask] = useState<EditingTask>(null);
@@ -147,6 +167,13 @@ export default function DashboardPage() {
     type: "habit" | "identity" | "task";
     id: string;
   } | null>(null);
+
+  // User Settings state
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const [tempRestDays, setTempRestDays] = useState<number[]>([]);
+  const [tempVacationMode, setTempVacationMode] = useState(false);
+  const [tempVacationStart, setTempVacationStart] = useState("");
+  const [tempVacationEnd, setTempVacationEnd] = useState("");
 
   // Stoic Writing state
   const [stoicQuestion, setStoicQuestion] = useState("");
@@ -189,10 +216,23 @@ export default function DashboardPage() {
   const [newTaskIdentityId, setNewTaskIdentityId] = useState<string>("");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
 
+  // Helper to format date as YYYY-MM-DD
+  const formatDateParam = (date: Date) => {
+    return date.toISOString().split("T")[0];
+  };
+
+  // Check if selected date is today
+  const isToday = useCallback(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return selectedDate.getTime() === now.getTime();
+  }, [selectedDate]);
+
   // Fetch functions
-  const fetchHabits = useCallback(async () => {
+  const fetchHabits = useCallback(async (date: Date) => {
     try {
-      const res = await fetch("/api/habits/today");
+      const dateParam = formatDateParam(date);
+      const res = await fetch(`/api/habits/today?date=${dateParam}`);
       if (res.ok) {
         const data = await res.json();
         setHabits(data);
@@ -264,6 +304,18 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchSettings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/settings");
+      if (res.ok) {
+        const data = await res.json();
+        setUserSettings(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch settings:", error);
+    }
+  }, []);
+
   // Effects
   useEffect(() => {
     if (!isPending && !session) {
@@ -273,25 +325,108 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (session) {
-      fetchHabits();
+      fetchHabits(selectedDate);
       fetchIdentities();
       fetchTasks();
       fetchStoicEntry();
       fetchWeeklyScore();
+      fetchSettings();
     }
   }, [
     session,
+    selectedDate,
     fetchHabits,
     fetchIdentities,
     fetchTasks,
     fetchStoicEntry,
     fetchWeeklyScore,
+    fetchSettings,
   ]);
+
+  // Date navigation helpers
+  const goToPreviousDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 1);
+    setSelectedDate(newDate);
+  };
+
+  const goToNextDay = () => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    // Don't allow going to future dates
+    if (selectedDate >= now) return;
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 1);
+    setSelectedDate(newDate);
+  };
+
+  const goToToday = () => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    setSelectedDate(now);
+  };
+
+  // Check if a date is a rest day or in vacation
+  const isRestDay = useCallback(
+    (date: Date) => {
+      if (!userSettings) return false;
+      const dayOfWeek = date.getDay();
+      return userSettings.restDays.includes(dayOfWeek);
+    },
+    [userSettings],
+  );
+
+  const isOnVacation = useCallback(
+    (date: Date) => {
+      if (!userSettings || !userSettings.vacationMode) return false;
+      if (!userSettings.vacationStart || !userSettings.vacationEnd) return false;
+
+      const start = new Date(userSettings.vacationStart);
+      const end = new Date(userSettings.vacationEnd);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+
+      return date >= start && date <= end;
+    },
+    [userSettings],
+  );
 
   // Handlers
   const handleSignOut = async () => {
     await signOut();
     router.push("/");
+  };
+
+  const openSettingsDialog = () => {
+    if (userSettings) {
+      setTempRestDays(userSettings.restDays);
+      setTempVacationMode(userSettings.vacationMode);
+      setTempVacationStart(userSettings.vacationStart?.split("T")[0] || "");
+      setTempVacationEnd(userSettings.vacationEnd?.split("T")[0] || "");
+    }
+    setShowSettings(true);
+  };
+
+  const saveSettings = async () => {
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          restDays: tempRestDays,
+          vacationMode: tempVacationMode,
+          vacationStart: tempVacationStart || null,
+          vacationEnd: tempVacationEnd || null,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserSettings(data);
+        setShowSettings(false);
+      }
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+    }
   };
 
   const saveStoicEntry = async () => {
@@ -335,10 +470,11 @@ export default function DashboardPage() {
     );
 
     try {
+      const dateParam = formatDateParam(selectedDate);
       const res = await fetch(`/api/habits/${habitId}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: dayMode }),
+        body: JSON.stringify({ mode: dayMode, date: dateParam }),
       });
       if (!res.ok) {
         setHabits((prev) =>
@@ -755,13 +891,13 @@ export default function DashboardPage() {
       if (!res.ok) {
         // Revert on failure
         setIdentities(previousIdentities);
-        fetchHabits(); // Refresh habits to get correct identity data
+        fetchHabits(selectedDate); // Refresh habits to get correct identity data
       }
     } catch (error) {
       console.error("Failed to update identity:", error);
       // Revert on error
       setIdentities(previousIdentities);
-      fetchHabits();
+      fetchHabits(selectedDate);
     }
   };
 
@@ -828,7 +964,14 @@ export default function DashboardPage() {
 
   // Computed values
   const today = new Date();
-  const formattedDate = today.toLocaleDateString("en-US", {
+  today.setHours(0, 0, 0, 0);
+  const isViewingToday = selectedDate.getTime() === today.getTime();
+  const isViewingPast = selectedDate < today;
+  const selectedDateIsRestDay = isRestDay(selectedDate);
+  const selectedDateIsVacation = isOnVacation(selectedDate);
+  const isBreakDay = selectedDateIsRestDay || selectedDateIsVacation;
+
+  const formattedSelectedDate = selectedDate.toLocaleDateString("en-US", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -984,6 +1127,14 @@ export default function DashboardPage() {
                 Radar
               </Button>
             </Link>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={openSettingsDialog}
+            >
+              <Settings className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Settings</span>
+            </Button>
             <span className="text-sm text-muted-foreground hidden sm:block">
               {session.user.email}
             </span>
@@ -995,16 +1146,76 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-8">
-        {/* Daily Header */}
+        {/* Daily Header with Date Navigation */}
         <div className="mb-8 text-center">
           <p className="text-sm text-muted-foreground uppercase tracking-wide">
-            Daily Panel
+            {isViewingToday ? "Daily Panel" : "Past Day View"}
           </p>
-          <h2 className="text-2xl font-bold capitalize mt-1">
-            {formattedDate}
-          </h2>
+
+          {/* Date Navigation */}
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goToPreviousDay}
+              className="h-8 w-8"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+
+            <h2 className="text-xl sm:text-2xl font-bold capitalize min-w-48">
+              {formattedSelectedDate}
+            </h2>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goToNextDay}
+              disabled={isViewingToday}
+              className="h-8 w-8"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          </div>
+
+          {/* Rest Day / Vacation Indicator */}
+          {isBreakDay && (
+            <div className="mt-2 flex items-center justify-center gap-2">
+              {selectedDateIsVacation && (
+                <Badge variant="secondary" className="bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300">
+                  <Palmtree className="w-3 h-3 mr-1" />
+                  Vacation Mode
+                </Badge>
+              )}
+              {selectedDateIsRestDay && !selectedDateIsVacation && (
+                <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                  <Moon className="w-3 h-3 mr-1" />
+                  Rest Day
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Today button when viewing past */}
+          {isViewingPast && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToToday}
+              className="mt-2"
+            >
+              Back to Today
+            </Button>
+          )}
+
           <p className="text-muted-foreground text-sm mt-2">
-            Just today. Nothing from yesterday. Nothing from tomorrow.
+            {isBreakDay 
+              ? (selectedDateIsVacation 
+                  ? "Taking a well-deserved break. Habits are paused." 
+                  : "Scheduled rest day. Recharge your batteries!")
+              : (isViewingToday
+                  ? "Just today. Nothing from yesterday. Nothing from tomorrow."
+                  : "Viewing a past day. You can edit completions here.")}
           </p>
         </div>
 
@@ -2180,6 +2391,111 @@ export default function DashboardPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Rest & Recovery Settings
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Weekly Rest Days */}
+            <div>
+              <Label className="text-base font-medium flex items-center gap-2 mb-3">
+                <Moon className="w-4 h-4" />
+                Weekly Rest Days
+              </Label>
+              <p className="text-sm text-muted-foreground mb-3">
+                Select days where habits are paused for rest
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { day: 0, label: "Sun" },
+                  { day: 1, label: "Mon" },
+                  { day: 2, label: "Tue" },
+                  { day: 3, label: "Wed" },
+                  { day: 4, label: "Thu" },
+                  { day: 5, label: "Fri" },
+                  { day: 6, label: "Sat" },
+                ].map(({ day, label }) => (
+                  <Button
+                    key={day}
+                    variant={tempRestDays.includes(day) ? "default" : "outline"}
+                    size="sm"
+                    className={tempRestDays.includes(day) ? "bg-purple-600 hover:bg-purple-700" : ""}
+                    onClick={() => {
+                      setTempRestDays(prev => 
+                        prev.includes(day) 
+                          ? prev.filter(d => d !== day)
+                          : [...prev, day]
+                      );
+                    }}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Vacation Mode */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <Palmtree className="w-4 h-4" />
+                  Vacation Mode
+                </Label>
+                <Button
+                  variant={tempVacationMode ? "default" : "outline"}
+                  size="sm"
+                  className={tempVacationMode ? "bg-cyan-600 hover:bg-cyan-700" : ""}
+                  onClick={() => setTempVacationMode(!tempVacationMode)}
+                >
+                  {tempVacationMode ? "On" : "Off"}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Pause all habit tracking for a date range
+              </p>
+              
+              {tempVacationMode && (
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <Label className="text-sm mb-1 block">Start Date</Label>
+                    <Input
+                      type="date"
+                      value={tempVacationStart}
+                      onChange={(e) => setTempVacationStart(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm mb-1 block">End Date</Label>
+                    <Input
+                      type="date"
+                      value={tempVacationEnd}
+                      onChange={(e) => setTempVacationEnd(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSettings(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveSettings}>
+              Save Settings
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

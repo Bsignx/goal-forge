@@ -195,3 +195,17 @@ model Task {
   @@index([identityId])
   @@index([dueDate])
 }
+
+// User Settings - Rest days and vacation mode
+model UserSettings {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  restDays        Int[]     @default([]) // 0=Sun, 1=Mon, ..., 6=Sat
+  vacationMode    Boolean   @default(false)
+  vacationStart   DateTime? @db.Date
+  vacationEnd     DateTime? @db.Date
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+}
