@@ -270,9 +270,10 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const fetchStoicEntry = useCallback(async () => {
+  const fetchStoicEntry = useCallback(async (date: Date) => {
     try {
-      const res = await fetch("/api/stoic");
+      const dateStr = date.toISOString().split("T")[0];
+      const res = await fetch(`/api/stoic?date=${dateStr}`);
       if (res.ok) {
         const data = await res.json();
         setStoicQuestion(data.question);
@@ -282,6 +283,9 @@ export default function DashboardPage() {
         if (data.entry) {
           setStoicEntry(data.entry);
           setStoicAnswer(data.entry.answer);
+        } else {
+          setStoicEntry(null);
+          setStoicAnswer("");
         }
       }
     } catch (error) {
@@ -330,7 +334,7 @@ export default function DashboardPage() {
       fetchHabits(selectedDate);
       fetchIdentities();
       fetchTasks();
-      fetchStoicEntry();
+      fetchStoicEntry(selectedDate);
       fetchWeeklyScore();
       fetchSettings();
     }
@@ -1749,9 +1753,15 @@ export default function DashboardPage() {
                     min={1}
                     max={7}
                     value={newHabitTargetPerWeek}
-                    onChange={(e) =>
-                      setNewHabitTargetPerWeek(parseInt(e.target.value) || 1)
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "") {
+                        setNewHabitTargetPerWeek(1);
+                      } else {
+                        const num = parseInt(val);
+                        setNewHabitTargetPerWeek(Math.min(7, Math.max(1, num || 1)));
+                      }
+                    }}
                     className="w-20"
                   />
                   <span className="text-sm text-muted-foreground">
@@ -1966,16 +1976,13 @@ export default function DashboardPage() {
                     min={1}
                     max={7}
                     value={editingHabit?.targetPerWeek || 3}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const num = val === "" ? 1 : Math.min(7, Math.max(1, parseInt(val) || 1));
                       setEditingHabit((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              targetPerWeek: parseInt(e.target.value) || 1,
-                            }
-                          : null,
-                      )
-                    }
+                        prev ? { ...prev, targetPerWeek: num } : null
+                      );
+                    }}
                     className="w-20"
                   />
                   <span className="text-sm text-muted-foreground">

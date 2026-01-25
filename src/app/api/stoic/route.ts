@@ -380,8 +380,8 @@ function getDailyQuestion(date: Date): string {
   return STOIC_QUESTIONS[dayOfYear % STOIC_QUESTIONS.length];
 }
 
-// GET today's stoic entry
-export async function GET() {
+// GET stoic entry for a specific date (or today)
+export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -390,20 +390,29 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+  // Support date parameter for viewing past entries
+  const { searchParams } = new URL(request.url);
+  const dateParam = searchParams.get("date");
+  
+  let targetDate: Date;
+  if (dateParam) {
+    targetDate = new Date(dateParam + "T00:00:00.000Z");
+  } else {
+    targetDate = new Date();
+    targetDate.setUTCHours(0, 0, 0, 0);
+  }
 
   const entry = await prisma.stoicEntry.findUnique({
     where: {
       userId_date: {
         userId: session.user.id,
-        date: today,
+        date: targetDate,
       },
     },
   });
 
-  const question = getDailyQuestion(today);
-  const quote = getDailyQuote(today);
+  const question = getDailyQuestion(targetDate);
+  const quote = getDailyQuote(targetDate);
 
   return NextResponse.json({
     entry,
