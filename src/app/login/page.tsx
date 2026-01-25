@@ -1,18 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signIn, signUp } from "@/lib/auth-client";
+import { signIn, signUp, useSession } from "@/lib/auth-client";
 import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { data: session, isPending } = useSession();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!isPending && session) {
+      router.push("/dashboard");
+    }
+  }, [session, isPending, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +58,18 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Show loading while checking session
+  if (isPending || session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🎯</div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
