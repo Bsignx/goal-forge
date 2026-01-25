@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { LoadMode } from "@prisma/client";
 
-// Toggle completion for a habit on today's date
+// Toggle completion for a habit on a specific date (or today)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ habitId: string }> },
@@ -19,15 +19,19 @@ export async function POST(
 
   const { habitId } = await params;
 
-  // Get mode from request body (optional)
+  // Get mode and date from request body (optional)
   let mode: LoadMode = "FULL";
+  let dateParam: string | null = null;
   try {
     const body = await request.json();
     if (body.mode && ["FULL", "RECOVERY", "MINIMAL"].includes(body.mode)) {
       mode = body.mode as LoadMode;
     }
+    if (body.date) {
+      dateParam = body.date;
+    }
   } catch {
-    // No body or invalid JSON, use default mode
+    // No body or invalid JSON, use defaults
   }
 
   // Verify the habit belongs to the user
@@ -42,16 +46,21 @@ export async function POST(
     return NextResponse.json({ error: "Habit not found" }, { status: 404 });
   }
 
-  // Get today's date at midnight (UTC)
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+  // Parse target date from param or use today (in user's local context via date string)
+  let targetDate: Date;
+  if (dateParam) {
+    targetDate = new Date(dateParam + "T00:00:00.000Z");
+  } else {
+    targetDate = new Date();
+    targetDate.setUTCHours(0, 0, 0, 0);
+  }
 
   // Use upsert pattern to handle race conditions
   const existingCompletion = await prisma.completion.findUnique({
     where: {
       habitId_date: {
         habitId,
-        date: today,
+        date: targetDate,
       },
     },
   });
@@ -61,7 +70,7 @@ export async function POST(
     await prisma.completion.deleteMany({
       where: {
         habitId,
-        date: today,
+        date: targetDate,
       },
     });
     return NextResponse.json({ completed: false, mode: null });
@@ -71,12 +80,12 @@ export async function POST(
       where: {
         habitId_date: {
           habitId,
-          date: today,
+          date: targetDate,
         },
       },
       create: {
         habitId,
-        date: today,
+        date: targetDate,
         mode,
       },
       update: { mode },

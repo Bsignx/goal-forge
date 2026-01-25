@@ -218,9 +218,12 @@ export default function DashboardPage() {
   const [newTaskIdentityId, setNewTaskIdentityId] = useState<string>("");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
 
-  // Helper to format date as YYYY-MM-DD
+  // Helper to format date as YYYY-MM-DD in user's local timezone
   const formatDateParam = (date: Date) => {
-    return date.toISOString().split("T")[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
   // Check if selected date is today
@@ -272,7 +275,7 @@ export default function DashboardPage() {
 
   const fetchStoicEntry = useCallback(async (date: Date) => {
     try {
-      const dateStr = date.toISOString().split("T")[0];
+      const dateStr = formatDateParam(date);
       const res = await fetch(`/api/stoic?date=${dateStr}`);
       if (res.ok) {
         const data = await res.json();
@@ -441,10 +444,11 @@ export default function DashboardPage() {
 
     setSavingStoic(true);
     try {
+      const dateParam = formatDateParam(selectedDate);
       const res = await fetch("/api/stoic", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answer: stoicAnswer }),
+        body: JSON.stringify({ answer: stoicAnswer, date: dateParam }),
       });
       if (res.ok) {
         const entry = await res.json();
@@ -1759,7 +1763,9 @@ export default function DashboardPage() {
                         setNewHabitTargetPerWeek(1);
                       } else {
                         const num = parseInt(val);
-                        setNewHabitTargetPerWeek(Math.min(7, Math.max(1, num || 1)));
+                        setNewHabitTargetPerWeek(
+                          Math.min(7, Math.max(1, num || 1)),
+                        );
                       }
                     }}
                     className="w-20"
@@ -1978,9 +1984,12 @@ export default function DashboardPage() {
                     value={editingHabit?.targetPerWeek || 3}
                     onChange={(e) => {
                       const val = e.target.value;
-                      const num = val === "" ? 1 : Math.min(7, Math.max(1, parseInt(val) || 1));
+                      const num =
+                        val === ""
+                          ? 1
+                          : Math.min(7, Math.max(1, parseInt(val) || 1));
                       setEditingHabit((prev) =>
-                        prev ? { ...prev, targetPerWeek: num } : null
+                        prev ? { ...prev, targetPerWeek: num } : null,
                       );
                     }}
                     className="w-20"

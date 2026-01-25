@@ -393,7 +393,7 @@ export async function GET(request: NextRequest) {
   // Support date parameter for viewing past entries
   const { searchParams } = new URL(request.url);
   const dateParam = searchParams.get("date");
-  
+
   let targetDate: Date;
   if (dateParam) {
     targetDate = new Date(dateParam + "T00:00:00.000Z");
@@ -421,7 +421,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// POST/UPDATE today's stoic entry
+// POST/UPDATE stoic entry for a specific date
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -431,7 +431,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { answer } = await request.json();
+  const { answer, date: dateParam } = await request.json();
 
   if (!answer || typeof answer !== "string") {
     return NextResponse.json({ error: "Answer is required" }, { status: 400 });
@@ -445,20 +445,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  const question = getDailyQuestion(today);
+  // Parse target date from param or use today
+  let targetDate: Date;
+  if (dateParam) {
+    targetDate = new Date(dateParam + "T00:00:00.000Z");
+  } else {
+    targetDate = new Date();
+    targetDate.setUTCHours(0, 0, 0, 0);
+  }
+  const question = getDailyQuestion(targetDate);
 
   const entry = await prisma.stoicEntry.upsert({
     where: {
       userId_date: {
         userId: session.user.id,
-        date: today,
+        date: targetDate,
       },
     },
     create: {
       userId: session.user.id,
-      date: today,
+      date: targetDate,
       question,
       answer,
     },
