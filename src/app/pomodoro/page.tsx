@@ -274,7 +274,7 @@ export default function PomodoroPage() {
     switch (m) {
       case "work":
         return {
-          label: "Foco",
+          label: "Focus",
           color: "text-orange-500",
           bgColor: "bg-orange-500/20",
           borderColor: "border-orange-500/50",
@@ -282,7 +282,7 @@ export default function PomodoroPage() {
         };
       case "shortBreak":
         return {
-          label: "Pausa Curta",
+          label: "Short Break",
           color: "text-green-500",
           bgColor: "bg-green-500/20",
           borderColor: "border-green-500/50",
@@ -290,7 +290,7 @@ export default function PomodoroPage() {
         };
       case "longBreak":
         return {
-          label: "Pausa Longa",
+          label: "Long Break",
           color: "text-blue-500",
           bgColor: "bg-blue-500/20",
           borderColor: "border-blue-500/50",
@@ -309,7 +309,7 @@ export default function PomodoroPage() {
   if (isPending) {
     return (
       <div className="min-h-screen bg-stone-950 flex items-center justify-center">
-        <div className="animate-pulse text-stone-400">Carregando...</div>
+        <div className="animate-pulse text-stone-400">Loading...</div>
       </div>
     );
   }
@@ -432,7 +432,7 @@ export default function PomodoroPage() {
               {mode === "work" && (
                 <div className="w-full max-w-xs">
                   <Input
-                    placeholder="No que você vai focar?"
+                    placeholder="What will you focus on?"
                     value={currentTask}
                     onChange={(e) => setCurrentTask(e.target.value)}
                     className="text-center bg-stone-800/50 border-stone-700"
@@ -482,7 +482,7 @@ export default function PomodoroPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{completedSessions}</p>
-                  <p className="text-sm text-stone-400">Sessões hoje</p>
+                  <p className="text-sm text-stone-400">Sessions today</p>
                 </div>
               </div>
             </CardContent>
@@ -496,7 +496,7 @@ export default function PomodoroPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{getTodayFocusTime()}</p>
-                  <p className="text-sm text-stone-400">Min focados</p>
+                  <p className="text-sm text-stone-400">Min focused</p>
                 </div>
               </div>
             </CardContent>
@@ -507,9 +507,7 @@ export default function PomodoroPage() {
         <Card className="bg-stone-900/50 border-stone-800">
           <CardContent className="py-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-stone-400">
-                Próxima pausa longa
-              </span>
+              <span className="text-sm text-stone-400">Next long break</span>
               <span className="text-sm font-medium">
                 {completedSessions % settings.sessionsUntilLongBreak}/
                 {settings.sessionsUntilLongBreak}
@@ -540,7 +538,7 @@ export default function PomodoroPage() {
         {todaySessions.length > 0 && (
           <Card className="bg-stone-900/50 border-stone-800">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Sessões de hoje</CardTitle>
+              <CardTitle className="text-lg">Today's Sessions</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -573,7 +571,7 @@ export default function PomodoroPage() {
                           <p className="text-sm">{s.duration} min</p>
                           <p className="text-xs text-stone-400">
                             {new Date(s.completedAt).toLocaleTimeString(
-                              "pt-BR",
+                              "en-US",
                               {
                                 hour: "2-digit",
                                 minute: "2-digit",
@@ -594,9 +592,9 @@ export default function PomodoroPage() {
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="bg-stone-900 border-stone-800">
           <DialogHeader>
-            <DialogTitle>Configurações do Pomodoro</DialogTitle>
+            <DialogTitle>Pomodoro Settings</DialogTitle>
             <DialogDescription>
-              Personalize os tempos e comportamentos do timer.
+              Customize timer durations and behavior.
             </DialogDescription>
           </DialogHeader>
 
@@ -604,12 +602,12 @@ export default function PomodoroPage() {
             {/* Durations */}
             <div className="space-y-4">
               <h4 className="text-sm font-medium text-stone-300">
-                Durações (minutos)
+                Durations (minutes)
               </h4>
 
               <div className="grid gap-4">
                 <div className="flex items-center justify-between">
-                  <Label>Foco</Label>
+                  <Label>Focus</Label>
                   <Input
                     type="number"
                     value={tempSettings.workDuration}
@@ -626,7 +624,7 @@ export default function PomodoroPage() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Label>Pausa curta</Label>
+                  <Label>Short break</Label>
                   <Input
                     type="number"
                     value={tempSettings.shortBreakDuration}
@@ -643,7 +641,7 @@ export default function PomodoroPage() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Label>Pausa longa</Label>
+                  <Label>Long break</Label>
                   <Input
                     type="number"
                     value={tempSettings.longBreakDuration}
@@ -660,7 +658,7 @@ export default function PomodoroPage() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Label>Sessões até pausa longa</Label>
+                  <Label>Sessions until long break</Label>
                   <Input
                     type="number"
                     value={tempSettings.sessionsUntilLongBreak}
@@ -682,15 +680,11 @@ export default function PomodoroPage() {
 
             {/* Auto-start options */}
             <div className="space-y-4">
-              <h4 className="text-sm font-medium text-stone-300">
-                Comportamento
-              </h4>
+              <h4 className="text-sm font-medium text-stone-300">Behavior</h4>
 
               <div className="space-y-3">
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-sm">
-                    Iniciar pausas automaticamente
-                  </span>
+                  <span className="text-sm">Auto-start breaks</span>
                   <button
                     onClick={() =>
                       setTempSettings((prev) => ({
@@ -715,9 +709,7 @@ export default function PomodoroPage() {
                 </label>
 
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-sm">
-                    Iniciar foco automaticamente após pausa
-                  </span>
+                  <span className="text-sm">Auto-start focus after break</span>
                   <button
                     onClick={() =>
                       setTempSettings((prev) => ({
@@ -746,9 +738,9 @@ export default function PomodoroPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSettings(false)}>
-              Cancelar
+              Cancel
             </Button>
-            <Button onClick={saveSettings}>Salvar</Button>
+            <Button onClick={saveSettings}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
