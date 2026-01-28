@@ -53,6 +53,7 @@ import {
   Settings,
   Palmtree,
   Moon,
+  Timer,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -1132,6 +1133,12 @@ export default function DashboardPage() {
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">🎯 Goal Forge</h1>
           <div className="flex items-center gap-2">
+            <Link href="/pomodoro">
+              <Button variant="outline" size="sm">
+                <Timer className="w-4 h-4 mr-1" />
+                Pomodoro
+              </Button>
+            </Link>
             <Link href="/radar">
               <Button variant="outline" size="sm">
                 <Radio className="w-4 h-4 mr-1" />
