@@ -54,6 +54,10 @@ import {
   Palmtree,
   Moon,
   Timer,
+  Menu,
+  X,
+  LogOut,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -170,6 +174,9 @@ export default function DashboardPage() {
     type: "habit" | "identity" | "task";
     id: string;
   } | null>(null);
+
+  // Mobile menu state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // User Settings state
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
@@ -1129,10 +1136,12 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b">
+      <header className="border-b sticky top-0 bg-background/95 backdrop-blur-sm z-50">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">🎯 Goal Forge</h1>
-          <div className="flex items-center gap-2">
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-2">
             <Link href="/pomodoro">
               <Button variant="outline" size="sm">
                 <Timer className="w-4 h-4 mr-1" />
@@ -1147,16 +1156,81 @@ export default function DashboardPage() {
             </Link>
             <Button variant="outline" size="sm" onClick={openSettingsDialog}>
               <Settings className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Settings</span>
+              Settings
             </Button>
-            <span className="text-sm text-muted-foreground hidden sm:block">
-              {session.user.email}
-            </span>
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               Sign Out
             </Button>
           </div>
+
+          {/* Mobile Hamburger Button */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+          </Button>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t bg-background">
+            <nav className="max-w-2xl mx-auto px-4 py-3 space-y-1">
+              <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground border-b mb-2 pb-3">
+                <User className="w-4 h-4" />
+                <span className="truncate">{session.user.email}</span>
+              </div>
+
+              <Link
+                href="/pomodoro"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-accent transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Timer className="w-5 h-5 text-orange-500" />
+                <span className="font-medium">Pomodoro</span>
+              </Link>
+
+              <Link
+                href="/radar"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-accent transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Radio className="w-5 h-5 text-blue-500" />
+                <span className="font-medium">Radar</span>
+              </Link>
+
+              <button
+                className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-accent transition-colors w-full text-left"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openSettingsDialog();
+                }}
+              >
+                <Settings className="w-5 h-5 text-stone-500" />
+                <span className="font-medium">Configurações</span>
+              </button>
+
+              <div className="border-t pt-2 mt-2">
+                <button
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-destructive/10 transition-colors w-full text-left text-destructive"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleSignOut();
+                  }}
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span className="font-medium">Sair</span>
+                </button>
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-8">

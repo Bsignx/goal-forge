@@ -165,16 +165,16 @@ export default function PomodoroPage() {
 
     // Save to localStorage (keep last 7 days)
     const allSessions = JSON.parse(
-      localStorage.getItem(SESSIONS_KEY) || "[]"
+      localStorage.getItem(SESSIONS_KEY) || "[]",
     ) as PomodoroSession[];
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const recentSessions = allSessions.filter(
-      (s) => new Date(s.completedAt) > weekAgo
+      (s) => new Date(s.completedAt) > weekAgo,
     );
     localStorage.setItem(
       SESSIONS_KEY,
-      JSON.stringify([...recentSessions, newSession])
+      JSON.stringify([...recentSessions, newSession]),
     );
 
     if (mode === "work") {
@@ -188,7 +188,7 @@ export default function PomodoroPage() {
       setTimeLeft(
         isLongBreak
           ? settings.longBreakDuration * 60
-          : settings.shortBreakDuration * 60
+          : settings.shortBreakDuration * 60,
       );
 
       if (settings.autoStartBreaks) {
@@ -249,7 +249,7 @@ export default function PomodoroPage() {
           ? tempSettings.workDuration * 60
           : mode === "shortBreak"
             ? tempSettings.shortBreakDuration * 60
-            : tempSettings.longBreakDuration * 60
+            : tempSettings.longBreakDuration * 60,
       );
     }
 
@@ -360,7 +360,7 @@ export default function PomodoroPage() {
                   JSON.stringify({
                     ...settings,
                     soundEnabled: !settings.soundEnabled,
-                  })
+                  }),
                 );
               }}
             >
@@ -451,7 +451,6 @@ export default function PomodoroPage() {
                 >
                   <RotateCcw className="h-5 w-5" />
                 </Button>
-
                 <Button
                   size="lg"
                   className={`h-16 w-16 rounded-full ${
@@ -467,7 +466,6 @@ export default function PomodoroPage() {
                     <Play className="h-8 w-8 ml-1" />
                   )}
                 </Button>
-
                 <div className="w-10" /> {/* Spacer for alignment */}
               </div>
             </div>
@@ -523,8 +521,7 @@ export default function PomodoroPage() {
                   <div
                     key={i}
                     className={`h-2 flex-1 rounded-full ${
-                      i <
-                      completedSessions % settings.sessionsUntilLongBreak ||
+                      i < completedSessions % settings.sessionsUntilLongBreak ||
                       (completedSessions > 0 &&
                         completedSessions % settings.sessionsUntilLongBreak ===
                           0 &&
@@ -533,7 +530,7 @@ export default function PomodoroPage() {
                         : "bg-stone-700"
                     }`}
                   />
-                )
+                ),
               )}
             </div>
           </CardContent>
@@ -580,7 +577,7 @@ export default function PomodoroPage() {
                               {
                                 hour: "2-digit",
                                 minute: "2-digit",
-                              }
+                              },
                             )}
                           </p>
                         </div>
@@ -691,7 +688,9 @@ export default function PomodoroPage() {
 
               <div className="space-y-3">
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-sm">Iniciar pausas automaticamente</span>
+                  <span className="text-sm">
+                    Iniciar pausas automaticamente
+                  </span>
                   <button
                     onClick={() =>
                       setTempSettings((prev) => ({
