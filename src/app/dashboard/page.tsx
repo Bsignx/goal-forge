@@ -1025,16 +1025,19 @@ export default function DashboardPage() {
     month: "long",
   });
 
+  // Filter habits to only show those scheduled for the selected day
+  const scheduledHabits = habits.filter((h) => h.isScheduledToday);
+
   // Combine habits and tasks for unified progress
-  const completedHabits = habits.filter((h) => h.completed).length;
+  const completedHabits = scheduledHabits.filter((h) => h.completed).length;
   const completedTasks = tasks.filter((t) => t.completed).length;
   const completedCount = completedHabits + completedTasks;
-  const totalCount = habits.length + tasks.length;
+  const totalCount = scheduledHabits.length + tasks.length;
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
-  // Create unified today items list
+  // Create unified today items list (only scheduled habits)
   const todayItems: TodayItem[] = [
-    ...habits.map((h) => ({ type: "habit" as const, data: h })),
+    ...scheduledHabits.map((h) => ({ type: "habit" as const, data: h })),
     ...tasks.map((t) => ({ type: "task" as const, data: t })),
   ];
 
@@ -1433,7 +1436,7 @@ export default function DashboardPage() {
             <div className="space-y-4">
               {/* Items grouped by identity */}
               {identities.map((identity) => {
-                const identityHabits = habits.filter(
+                const identityHabits = scheduledHabits.filter(
                   (h) => h.identityId === identity.id,
                 );
                 const identityTasks = tasks.filter(
@@ -1499,7 +1502,7 @@ export default function DashboardPage() {
               })}
 
               {/* Items without identity */}
-              {(habits.filter((h) => !h.identityId).length > 0 ||
+              {(scheduledHabits.filter((h) => !h.identityId).length > 0 ||
                 tasks.filter((t) => !t.identityId).length > 0) && (
                 <div>
                   {identities.length > 0 && (
@@ -1511,7 +1514,7 @@ export default function DashboardPage() {
                     </div>
                   )}
                   <div className="space-y-2">
-                    {habits
+                    {scheduledHabits
                       .filter((h) => !h.identityId)
                       .map((habit) => (
                         <HabitCard
@@ -1562,7 +1565,7 @@ export default function DashboardPage() {
               )}
 
               {/* Empty state */}
-              {habits.length === 0 && tasks.length === 0 && (
+              {scheduledHabits.length === 0 && tasks.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <span className="text-4xl block mb-3">🎯</span>
                   <p className="mb-2">No activities for today yet.</p>
