@@ -58,6 +58,7 @@ import {
   X,
   LogOut,
   User,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -1181,6 +1182,12 @@ export default function DashboardPage() {
                 Pomodoro
               </Button>
             </Link>
+            <Link href="/stats">
+              <Button variant="outline" size="sm">
+                <BarChart3 className="w-4 h-4 mr-1" />
+                Stats
+              </Button>
+            </Link>
             <Link href="/radar">
               <Button variant="outline" size="sm">
                 <Radio className="w-4 h-4 mr-1" />
@@ -1227,6 +1234,15 @@ export default function DashboardPage() {
               >
                 <Timer className="w-5 h-5 text-orange-500" />
                 <span className="font-medium">Pomodoro</span>
+              </Link>
+
+              <Link
+                href="/stats"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-accent transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <BarChart3 className="w-5 h-5 text-purple-500" />
+                <span className="font-medium">Statistics</span>
               </Link>
 
               <Link
