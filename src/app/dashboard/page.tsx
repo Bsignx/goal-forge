@@ -333,6 +333,33 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchEnergyLevel = useCallback(async (date: Date) => {
+    try {
+      const dateStr = date.toISOString().split("T")[0];
+      const res = await fetch(`/api/energy-level?date=${dateStr}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDayMode(data.mode);
+      }
+    } catch (error) {
+      console.error("Failed to fetch energy level:", error);
+    }
+  }, []);
+
+  const handleDayModeChange = async (newMode: LoadMode) => {
+    setDayMode(newMode);
+    try {
+      const dateStr = selectedDate.toISOString().split("T")[0];
+      await fetch("/api/energy-level", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: newMode, date: dateStr }),
+      });
+    } catch (error) {
+      console.error("Failed to save energy level:", error);
+    }
+  };
+
   // Effects
   useEffect(() => {
     if (!isPending && !session) {
@@ -348,6 +375,7 @@ export default function DashboardPage() {
       fetchStoicEntry(selectedDate);
       fetchWeeklyScore();
       fetchSettings();
+      fetchEnergyLevel(selectedDate);
     }
   }, [
     session,
@@ -358,6 +386,7 @@ export default function DashboardPage() {
     fetchStoicEntry,
     fetchWeeklyScore,
     fetchSettings,
+    fetchEnergyLevel,
   ]);
 
   // Date navigation helpers
@@ -1323,7 +1352,7 @@ export default function DashboardPage() {
             <Button
               variant={dayMode === "FULL" ? "default" : "outline"}
               className={`flex-1 ${dayMode === "FULL" ? "bg-green-600 hover:bg-green-700" : ""}`}
-              onClick={() => setDayMode("FULL")}
+              onClick={() => handleDayModeChange("FULL")}
             >
               <Battery className="w-4 h-4 mr-2" />
               Full
@@ -1331,7 +1360,7 @@ export default function DashboardPage() {
             <Button
               variant={dayMode === "RECOVERY" ? "default" : "outline"}
               className={`flex-1 ${dayMode === "RECOVERY" ? "bg-yellow-600 hover:bg-yellow-700" : ""}`}
-              onClick={() => setDayMode("RECOVERY")}
+              onClick={() => handleDayModeChange("RECOVERY")}
             >
               <BatteryWarning className="w-4 h-4 mr-2" />
               Recovery
@@ -1339,7 +1368,7 @@ export default function DashboardPage() {
             <Button
               variant={dayMode === "MINIMAL" ? "default" : "outline"}
               className={`flex-1 ${dayMode === "MINIMAL" ? "bg-red-600 hover:bg-red-700" : ""}`}
-              onClick={() => setDayMode("MINIMAL")}
+              onClick={() => handleDayModeChange("MINIMAL")}
             >
               <BatteryLow className="w-4 h-4 mr-2" />
               Minimal

@@ -209,3 +209,17 @@ model UserSettings {
 
   @@index([userId])
 }
+
+// Daily Energy Level - Persisted energy mode per day
+model DailyEnergyLevel {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  mode      LoadMode @default(FULL)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
