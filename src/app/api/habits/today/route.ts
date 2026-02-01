@@ -29,6 +29,89 @@ function isHabitScheduledForDay(
   }
 }
 
+// Check if a specific date should count for streak based on habit frequency
+function shouldDateCountForStreak(
+  frequency: HabitFrequency,
+  scheduledDays: number[],
+  date: Date,
+): boolean {
+  const dayOfWeek = date.getUTCDay();
+  switch (frequency) {
+    case "DAILY":
+      return true;
+    case "WEEKDAYS":
+      return dayOfWeek >= 1 && dayOfWeek <= 5;
+    case "WEEKENDS":
+      return dayOfWeek === 0 || dayOfWeek === 6;
+    case "SPECIFIC_DAYS":
+      return scheduledDays.includes(dayOfWeek);
+    case "X_PER_WEEK":
+      // For X_PER_WEEK, we don't track streaks in the traditional sense
+      return false;
+    default:
+      return true;
+  }
+}
+
+// Calculate current streak for a habit
+function calculateStreak(
+  completions: { date: Date }[],
+  frequency: HabitFrequency,
+  scheduledDays: number[],
+  targetDate: Date,
+): number {
+  if (frequency === "X_PER_WEEK") {
+    // X_PER_WEEK doesn't have a traditional streak
+    return 0;
+  }
+
+  // Sort completions by date descending
+  const sortedDates = completions
+    .map((c) => c.date.getTime())
+    .sort((a, b) => b - a);
+
+  if (sortedDates.length === 0) return 0;
+
+  let streak = 0;
+  const checkDate = new Date(targetDate);
+  checkDate.setUTCHours(0, 0, 0, 0);
+
+  // If today is not a scheduled day, start from the last scheduled day
+  while (!shouldDateCountForStreak(frequency, scheduledDays, checkDate)) {
+    checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+  }
+
+  // Check if the most recent scheduled day was completed
+  const checkDateMs = checkDate.getTime();
+  if (!sortedDates.includes(checkDateMs)) {
+    // If today (or last scheduled day) isn't completed, check if we're still in grace
+    // For now, if today isn't done, streak is 0
+    return 0;
+  }
+
+  // Count consecutive scheduled days that were completed
+  while (true) {
+    const dateMs = checkDate.getTime();
+
+    if (shouldDateCountForStreak(frequency, scheduledDays, checkDate)) {
+      if (sortedDates.includes(dateMs)) {
+        streak++;
+      } else {
+        // Missed a scheduled day - streak ends
+        break;
+      }
+    }
+
+    // Move to previous day
+    checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+
+    // Safety: don't go back more than 365 days
+    if (streak > 365) break;
+  }
+
+  return streak;
+}
+
 // Get the Monday of the current week
 function getWeekStart(date: Date = new Date()): Date {
   const d = new Date(date);
@@ -64,7 +147,11 @@ export async function GET(request: NextRequest) {
   const dayOfWeek = targetDate.getUTCDay();
   const weekStart = getWeekStart(targetDate);
 
-  // Get all habits with completion status for target date and this week's completions
+  // Get date 365 days ago for streak calculation
+  const yearAgo = new Date(targetDate);
+  yearAgo.setUTCDate(yearAgo.getUTCDate() - 365);
+
+  // Get all habits with completions for streak calculation
   const habits = await prisma.habit.findMany({
     where: {
       userId: session.user.id,
@@ -74,28 +161,42 @@ export async function GET(request: NextRequest) {
       completions: {
         where: {
           date: {
-            gte: weekStart,
+            gte: yearAgo,
             lte: targetDate,
           },
         },
+        orderBy: { date: "desc" },
       },
       identity: true,
     },
     orderBy: { order: "asc" },
   });
 
-  // Transform to include completed flag, schedule info, and filter by schedule
+  // Transform to include completed flag, schedule info, streak, and filter by schedule
   const habitsWithStatus = habits.map((habit) => {
     const targetDateCompletion = habit.completions.find(
       (c) => c.date.getTime() === targetDate.getTime(),
     );
-    const completionsThisWeek = habit.completions.length;
+    
+    // Count completions this week only
+    const completionsThisWeek = habit.completions.filter(
+      (c) => c.date.getTime() >= weekStart.getTime() && c.date.getTime() <= targetDate.getTime()
+    ).length;
+    
     const isScheduledForDate = isHabitScheduledForDay(
       habit.frequency,
       habit.scheduledDays,
       habit.targetPerWeek,
       dayOfWeek,
       completionsThisWeek - (targetDateCompletion ? 1 : 0), // Don't count target date if already done
+    );
+
+    // Calculate streak
+    const currentStreak = calculateStreak(
+      habit.completions,
+      habit.frequency,
+      habit.scheduledDays,
+      targetDate,
     );
 
     return {
@@ -115,6 +216,7 @@ export async function GET(request: NextRequest) {
       targetPerWeek: habit.targetPerWeek,
       completionsThisWeek,
       isScheduledToday: isScheduledForDate,
+      currentStreak,
     };
   });
 

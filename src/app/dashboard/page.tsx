@@ -93,6 +93,7 @@ type Habit = {
   targetPerWeek: number | null;
   completionsThisWeek?: number;
   isScheduledToday?: boolean;
+  currentStreak?: number;
 };
 
 type EditingHabit = {
@@ -2728,6 +2729,11 @@ function HabitCard({
                 {frequencyLabel && (
                   <span className="text-xs px-1.5 py-0.5 bg-muted rounded text-muted-foreground whitespace-nowrap">
                     {frequencyLabel}
+                  </span>
+                )}
+                {habit.currentStreak && habit.currentStreak > 0 && (
+                  <span className="text-xs px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 rounded text-orange-600 dark:text-orange-400 whitespace-nowrap flex items-center gap-0.5">
+                    🔥 {habit.currentStreak}
                   </span>
                 )}
               </div>
