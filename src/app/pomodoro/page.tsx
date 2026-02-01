@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
@@ -17,6 +16,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Play,
   Pause,
@@ -30,6 +36,8 @@ import {
   VolumeX,
   Target,
   Flame,
+  Clock,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -50,7 +58,25 @@ type PomodoroSession = {
   mode: TimerMode;
   duration: number;
   completedAt: Date;
+  habitId?: string;
+  taskId?: string;
   taskName?: string;
+};
+
+type Activity = {
+  id: string;
+  name: string;
+  emoji: string;
+  type: "habit" | "task";
+};
+
+type ActivityStats = {
+  id: string;
+  name: string;
+  emoji: string;
+  type: "habit" | "task" | "unnamed";
+  totalMinutes: number;
+  sessionCount: number;
 };
 
 const DEFAULT_SETTINGS: PomodoroSettings = {
@@ -64,7 +90,6 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
 };
 
 const STORAGE_KEY = "pomodoro-settings";
-const SESSIONS_KEY = "pomodoro-sessions";
 
 export default function PomodoroPage() {
   const { data: session, isPending } = useSession();
@@ -75,7 +100,11 @@ export default function PomodoroPage() {
   const [timeLeft, setTimeLeft] = useState(25 * 60); // in seconds
   const [isRunning, setIsRunning] = useState(false);
   const [completedSessions, setCompletedSessions] = useState(0);
-  const [currentTask, setCurrentTask] = useState("");
+
+  // Activity selection
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [selectedActivity, setSelectedActivity] = useState<string>("");
+  const [customTaskName, setCustomTaskName] = useState("");
 
   // Settings
   const [settings, setSettings] = useState<PomodoroSettings>(DEFAULT_SETTINGS);
@@ -85,11 +114,16 @@ export default function PomodoroPage() {
 
   // Sessions history (today only)
   const [todaySessions, setTodaySessions] = useState<PomodoroSession[]>([]);
+  const [weeklyStats, setWeeklyStats] = useState<{
+    totalMinutes: number;
+    totalSessions: number;
+    activities: ActivityStats[];
+  } | null>(null);
 
   // Audio ref
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Load settings and sessions from localStorage
+  // Load settings from localStorage
   useEffect(() => {
     const savedSettings = localStorage.getItem(STORAGE_KEY);
     if (savedSettings) {
@@ -97,21 +131,94 @@ export default function PomodoroPage() {
       setSettings(parsed);
       setTimeLeft(parsed.workDuration * 60);
     }
+  }, []);
 
-    const savedSessions = localStorage.getItem(SESSIONS_KEY);
-    if (savedSessions) {
-      const parsed: PomodoroSession[] = JSON.parse(savedSessions);
-      // Filter only today's sessions
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayOnly = parsed.filter((s) => {
-        const sessionDate = new Date(s.completedAt);
-        sessionDate.setHours(0, 0, 0, 0);
-        return sessionDate.getTime() === today.getTime();
-      });
-      setTodaySessions(todayOnly);
-      // Count work sessions for today
-      setCompletedSessions(todayOnly.filter((s) => s.mode === "work").length);
+  // Fetch activities (habits + tasks)
+  const fetchActivities = useCallback(async () => {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const [habitsRes, tasksRes] = await Promise.all([
+        fetch(`/api/habits/today?date=${today}`),
+        fetch("/api/tasks"),
+      ]);
+
+      const activitiesList: Activity[] = [];
+
+      if (habitsRes.ok) {
+        const habits = await habitsRes.json();
+        habits.forEach(
+          (h: {
+            id: string;
+            name: string;
+            emoji: string;
+            isScheduledToday?: boolean;
+          }) => {
+            if (h.isScheduledToday) {
+              activitiesList.push({
+                id: `habit:${h.id}`,
+                name: h.name,
+                emoji: h.emoji,
+                type: "habit",
+              });
+            }
+          },
+        );
+      }
+
+      if (tasksRes.ok) {
+        const tasks = await tasksRes.json();
+        tasks.forEach(
+          (t: {
+            id: string;
+            name: string;
+            emoji: string;
+            completed: boolean;
+          }) => {
+            if (!t.completed) {
+              activitiesList.push({
+                id: `task:${t.id}`,
+                name: t.name,
+                emoji: t.emoji,
+                type: "task",
+              });
+            }
+          },
+        );
+      }
+
+      setActivities(activitiesList);
+    } catch (error) {
+      console.error("Failed to fetch activities:", error);
+    }
+  }, []);
+
+  // Fetch today's sessions from database
+  const fetchTodaySessions = useCallback(async () => {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const res = await fetch(`/api/pomodoro?date=${today}`);
+      if (res.ok) {
+        const sessions = await res.json();
+        setTodaySessions(sessions);
+        setCompletedSessions(
+          sessions.filter((s: PomodoroSession) => s.mode === "work").length,
+        );
+      }
+    } catch (error) {
+      console.error("Failed to fetch sessions:", error);
+    }
+  }, []);
+
+  // Fetch weekly stats
+  const fetchWeeklyStats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/pomodoro/stats?period=week");
+      if (res.ok) {
+        const stats = await res.json();
+        setWeeklyStats(stats);
+      }
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
     }
   }, []);
 
@@ -121,6 +228,15 @@ export default function PomodoroPage() {
       router.push("/login");
     }
   }, [session, isPending, router]);
+
+  // Load data when authenticated
+  useEffect(() => {
+    if (session) {
+      fetchActivities();
+      fetchTodaySessions();
+      fetchWeeklyStats();
+    }
+  }, [session, fetchActivities, fetchTodaySessions, fetchWeeklyStats]);
 
   // Timer logic
   useEffect(() => {
@@ -147,35 +263,44 @@ export default function PomodoroPage() {
   }, [settings.soundEnabled]);
 
   // Handle timer completion
-  const handleTimerComplete = useCallback(() => {
+  const handleTimerComplete = useCallback(async () => {
     setIsRunning(false);
     playSound();
 
-    // Save session
-    const newSession: PomodoroSession = {
-      id: Date.now().toString(),
-      mode,
-      duration: getDuration(mode),
-      completedAt: new Date(),
-      taskName: currentTask || undefined,
-    };
+    // Parse selected activity
+    let habitId: string | undefined;
+    let taskId: string | undefined;
+    let taskName: string | undefined;
 
-    const updatedSessions = [...todaySessions, newSession];
-    setTodaySessions(updatedSessions);
+    if (selectedActivity) {
+      const [type, id] = selectedActivity.split(":");
+      if (type === "habit") habitId = id;
+      else if (type === "task") taskId = id;
+    } else if (customTaskName) {
+      taskName = customTaskName;
+    }
 
-    // Save to localStorage (keep last 7 days)
-    const allSessions = JSON.parse(
-      localStorage.getItem(SESSIONS_KEY) || "[]",
-    ) as PomodoroSession[];
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const recentSessions = allSessions.filter(
-      (s) => new Date(s.completedAt) > weekAgo,
-    );
-    localStorage.setItem(
-      SESSIONS_KEY,
-      JSON.stringify([...recentSessions, newSession]),
-    );
+    // Save session to database
+    try {
+      const res = await fetch("/api/pomodoro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode,
+          duration: getDuration(mode),
+          habitId,
+          taskId,
+          taskName,
+        }),
+      });
+
+      if (res.ok) {
+        fetchTodaySessions();
+        fetchWeeklyStats();
+      }
+    } catch (error) {
+      console.error("Failed to save session:", error);
+    }
 
     if (mode === "work") {
       const newCount = completedSessions + 1;
@@ -207,9 +332,11 @@ export default function PomodoroPage() {
     mode,
     completedSessions,
     settings,
-    currentTask,
-    todaySessions,
+    selectedActivity,
+    customTaskName,
     playSound,
+    fetchTodaySessions,
+    fetchWeeklyStats,
   ]);
 
   // Get duration based on mode
@@ -304,6 +431,23 @@ export default function PomodoroPage() {
     return todaySessions
       .filter((s) => s.mode === "work")
       .reduce((acc, s) => acc + s.duration, 0);
+  };
+
+  // Format minutes to hours
+  const formatMinutes = (minutes: number): string => {
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
+  // Get selected activity display name
+  const getSelectedActivityDisplay = (): string => {
+    if (selectedActivity) {
+      const activity = activities.find((a) => a.id === selectedActivity);
+      return activity ? `${activity.emoji} ${activity.name}` : "";
+    }
+    return customTaskName || "";
   };
 
   if (isPending) {
@@ -428,16 +572,55 @@ export default function PomodoroPage() {
                 {formatTime(timeLeft)}
               </div>
 
-              {/* Task input */}
+              {/* Activity Selector (only during work mode) */}
               {mode === "work" && (
-                <div className="w-full max-w-xs">
-                  <Input
-                    placeholder="What will you focus on?"
-                    value={currentTask}
-                    onChange={(e) => setCurrentTask(e.target.value)}
-                    className="text-center bg-stone-800/50 border-stone-700"
+                <div className="w-full max-w-sm space-y-2">
+                  <Select
+                    value={selectedActivity}
+                    onValueChange={(value) => {
+                      setSelectedActivity(value);
+                      setCustomTaskName("");
+                    }}
                     disabled={isRunning}
-                  />
+                  >
+                    <SelectTrigger className="bg-stone-800/50 border-stone-700">
+                      <SelectValue placeholder="Link to activity (optional)" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-stone-900 border-stone-700">
+                      <SelectItem value="">No link</SelectItem>
+                      {activities.map((activity) => (
+                        <SelectItem key={activity.id} value={activity.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{activity.emoji}</span>
+                            <span>{activity.name}</span>
+                            <span className="text-xs text-stone-400">
+                              ({activity.type})
+                            </span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {!selectedActivity && (
+                    <Input
+                      placeholder="Or type what you're working on..."
+                      value={customTaskName}
+                      onChange={(e) => setCustomTaskName(e.target.value)}
+                      className="text-center bg-stone-800/50 border-stone-700"
+                      disabled={isRunning}
+                    />
+                  )}
+
+                  {/* Show selected activity while running */}
+                  {isRunning && getSelectedActivityDisplay() && (
+                    <p className="text-center text-sm text-stone-400">
+                      Working on:{" "}
+                      <span className="text-stone-200">
+                        {getSelectedActivityDisplay()}
+                      </span>
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -495,8 +678,10 @@ export default function PomodoroPage() {
                   <Flame className="h-5 w-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{getTodayFocusTime()}</p>
-                  <p className="text-sm text-stone-400">Min focused</p>
+                  <p className="text-2xl font-bold">
+                    {formatMinutes(getTodayFocusTime())}
+                  </p>
+                  <p className="text-sm text-stone-400">Focused today</p>
                 </div>
               </div>
             </CardContent>
@@ -534,11 +719,59 @@ export default function PomodoroPage() {
           </CardContent>
         </Card>
 
+        {/* Weekly Time Tracking Stats */}
+        {weeklyStats && weeklyStats.activities.length > 0 && (
+          <Card className="bg-stone-900/50 border-stone-800">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-blue-500" />
+                  This Week
+                </CardTitle>
+                <span className="text-sm text-stone-400">
+                  {formatMinutes(weeklyStats.totalMinutes)} total
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {weeklyStats.activities.slice(0, 5).map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{activity.emoji}</span>
+                      <span className="text-sm">{activity.name}</span>
+                      {activity.type !== "unnamed" && (
+                        <span className="text-xs text-stone-500">
+                          ({activity.type})
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {formatMinutes(activity.totalMinutes)}
+                      </span>
+                      <span className="text-xs text-stone-400">
+                        ({activity.sessionCount})
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Today's Sessions */}
         {todaySessions.length > 0 && (
           <Card className="bg-stone-900/50 border-stone-800">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Today's Sessions</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5 text-stone-400" />
+                Today&apos;s Sessions
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -549,6 +782,11 @@ export default function PomodoroPage() {
                   .map((s) => {
                     const info = getModeInfo(s.mode);
                     const Icon = info.icon;
+                    const linkedActivity = s.habitId
+                      ? activities.find((a) => a.id === `habit:${s.habitId}`)
+                      : s.taskId
+                        ? activities.find((a) => a.id === `task:${s.taskId}`)
+                        : null;
                     return (
                       <div
                         key={s.id}
@@ -560,9 +798,11 @@ export default function PomodoroPage() {
                           </div>
                           <div>
                             <p className="text-sm font-medium">{info.label}</p>
-                            {s.taskName && (
+                            {(linkedActivity || s.taskName) && (
                               <p className="text-xs text-stone-400">
-                                {s.taskName}
+                                {linkedActivity
+                                  ? `${linkedActivity.emoji} ${linkedActivity.name}`
+                                  : s.taskName}
                               </p>
                             )}
                           </div>

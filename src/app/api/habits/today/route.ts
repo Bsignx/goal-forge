@@ -177,12 +177,14 @@ export async function GET(request: NextRequest) {
     const targetDateCompletion = habit.completions.find(
       (c) => c.date.getTime() === targetDate.getTime(),
     );
-    
+
     // Count completions this week only
     const completionsThisWeek = habit.completions.filter(
-      (c) => c.date.getTime() >= weekStart.getTime() && c.date.getTime() <= targetDate.getTime()
+      (c) =>
+        c.date.getTime() >= weekStart.getTime() &&
+        c.date.getTime() <= targetDate.getTime(),
     ).length;
-    
+
     const isScheduledForDate = isHabitScheduledForDay(
       habit.frequency,
       habit.scheduledDays,

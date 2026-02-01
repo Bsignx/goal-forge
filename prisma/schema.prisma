@@ -223,3 +223,22 @@ model DailyEnergyLevel {
   @@index([userId])
   @@index([date])
 }
+
+// Pomodoro Sessions - Track focus time per activity
+model PomodoroSession {
+  id          String    @id @default(cuid())
+  mode        String    // "work", "shortBreak", "longBreak"
+  duration    Int       // Duration in minutes
+  completedAt DateTime  @default(now())
+  userId      String
+  // Optional link to habit or task
+  habitId     String?
+  taskId      String?
+  taskName    String?   // Fallback if no linked task/habit
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([habitId])
+  @@index([taskId])
+  @@index([completedAt])
+}
